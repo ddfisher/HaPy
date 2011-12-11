@@ -17,8 +17,8 @@ castToOpaquePtr = castPtrToStablePtr . castStablePtrToPtr
 -- returns an opaque pointer that can be forced to one of the primitive
 -- types or can be treated as a function to which args may be applied
 
-foreign export ccall getSymbol_c :: CString -> CString -> IO (StablePtr Opaque)
-getSymbol_c modName_c symName_c = do
+foreign export ccall getSymbol :: CString -> CString -> IO (StablePtr Opaque)
+getSymbol modName_c symName_c = do
     modName <- peekCString modName_c
     symName <- peekCString symName_c
     status <- load modName [] [] symName
@@ -41,31 +41,31 @@ applyArg sPtr arg = do
 
 -- export applyArg for each supported type
 
-foreign export ccall applyInt_c :: StablePtr (Int -> Opaque) -> Int ->
+foreign export ccall applyInt :: StablePtr (Int -> Opaque) -> Int ->
                                    IO (StablePtr Opaque)
-applyInt_c = applyArg
+applyInt = applyArg
 
-foreign export ccall applyBool_c :: StablePtr (Bool -> Opaque) -> Bool ->
+foreign export ccall applyBool :: StablePtr (Bool -> Opaque) -> Bool ->
                                     IO (StablePtr Opaque)
-applyBool_c = applyArg
+applyBool = applyArg
 
-foreign export ccall applyDouble_c :: StablePtr (Double -> Opaque) ->
+foreign export ccall applyDouble :: StablePtr (Double -> Opaque) ->
                                       Double -> IO (StablePtr Opaque)
-applyDouble_c = applyArg
+applyDouble = applyArg
 
-foreign export ccall applyString_c :: StablePtr (String -> Opaque) ->
+foreign export ccall applyString :: StablePtr (String -> Opaque) ->
                                       CString -> IO (StablePtr Opaque)
-applyString_c sPtr cString = do
+applyString sPtr cString = do
     str <- peekCString cString 
     res <- applyArg sPtr str
     return res
 
--- Apply an arbitrary Haskell value obtained by a call to getSymbol_c or 
--- apply*_c. The difference is that opaque values are not translated between 
+-- Apply an arbitrary Haskell value obtained by a call to getSymbol or 
+-- apply*. The difference is that opaque values are not translated between 
 -- C and Haskell types and remain opaque pointers to Haskell heap objects.
-foreign export ccall applyOpaque_c :: StablePtr (Opaque -> Opaque) ->
+foreign export ccall applyOpaque :: StablePtr (Opaque -> Opaque) ->
                                       StablePtr Opaque -> IO (StablePtr Opaque)
-applyOpaque_c funPtr argPtr = do
+applyOpaque funPtr argPtr = do
     arg <- deRefStablePtr argPtr
     _ <- freeStablePtr argPtr
     applyArg funPtr arg
@@ -81,16 +81,16 @@ retrieveResult sPtr = do
 
 -- export for each supported type
 
-foreign export ccall retrieveInt_c :: StablePtr Int -> IO (Int)
-retrieveInt_c = retrieveResult
+foreign export ccall retrieveInt :: StablePtr Int -> IO (Int)
+retrieveInt = retrieveResult
 
-foreign export ccall retrieveDouble_c :: StablePtr Double -> IO (Double)
-retrieveDouble_c = retrieveResult
+foreign export ccall retrieveDouble :: StablePtr Double -> IO (Double)
+retrieveDouble = retrieveResult
 
-foreign export ccall retrieveBool_c :: StablePtr Bool -> IO (Bool)
-retrieveBool_c = retrieveResult
+foreign export ccall retrieveBool :: StablePtr Bool -> IO (Bool)
+retrieveBool = retrieveResult
 
-foreign export ccall retrieveString_c :: StablePtr String -> IO (CString)
-retrieveString_c sPtr = do
+foreign export ccall retrieveString :: StablePtr String -> IO (CString)
+retrieveString sPtr = do
     str <- retrieveResult sPtr
     newCString str

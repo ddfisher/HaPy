@@ -1,18 +1,21 @@
+C: haskell HaPy.c
+	ghc -fPIC -c HaPy.c -o HaPy.o
+	ghc -dynamic -shared -package plugins \
+		HaPy.o HaPy_Haskell.o HaPy_Haskell_stub.o -o libhapy.so \
+		-lHSrts-ghc7.0.3 -optl-Wl,-rpath,/usr/lib/ghc/ghc-7.0.3/
 
 haskell: HaPy.hs
-	ghc -c HaPy.hs
+	ghc -fPIC -dynamic -c HaPy.hs -o HaPy_Haskell.o
 
-test: haskell testModule test.c
-	ghc --make test.c HaPy.o HaPy_stub.o -o test -package plugins -no-hs-main
-
-python: HaPyModule.c
-	gcc -c HaPyModule.c -I/usr/include/python2.7/
-
-testModule: haskell Mod.hs
+testModule:
 	ghc --make Mod.hs
 
+test: C testModule
+	python test.py
+
 clean:
-	rm *.o
-	rm *.hi
-	rm *_stub*
-	rm test
+	rm -f *.o
+	rm -f *.hi
+	rm -f *_stub*
+	rm -f *.pyc
+	rm -f *.so

@@ -3,7 +3,7 @@ import Data.HashTable
 import Data.Int
 
 one :: Integer
-one = 999000
+one = 1
 
 plus :: Int -> Int -> Int
 plus = (+)
