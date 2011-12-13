@@ -19,3 +19,6 @@ clean:
 	rm -f *_stub*
 	rm -f *.pyc
 	rm -f *.so
+
+paper:
+	pdflatex -shell-escape paper.tex
