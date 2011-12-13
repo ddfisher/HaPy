@@ -1,0 +1,18 @@
+%IMPORTANT: BECAUSE WE ARE USING MINTED, YOU MUST SAY pdflatex -shell-escape paper.tex
+
+\documentclass[11pt, letterpaper, oneside] {article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{fullpage}
+\usepackage{minted}
+
+\begin{document}
+\parindent = 0cm
+
+Testing minted.
+\begin{minted}{c}
+int main() {
+  printf("hello, world");
+  return 0;
+}
+\end{minted}
+\end{document}
