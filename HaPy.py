@@ -5,7 +5,7 @@ haPy = cdll.LoadLibrary("./libhapy.so")
 
 # Set libhapy typeinfo
 haPy.retrieveInt.restype = c_int
-haPy.retrieveBool.restype = lambda i: False if i is 0 else True
+haPy.retrieveBool.restype = lambda i: False if i is 0 else True #TODO: not working, must debug
 haPy.retrieveDouble.restype = c_double
 haPy.retrieveString.restype = c_char_p
 
