@@ -1,4 +1,4 @@
-%IMPORTANT: BECAUSE WE ARE USING MINTED, YOU MUST SAY pdflatex -shell-escape paper.tex
+% IMPORTANT: BECAUSE WE ARE USING MINTED, YOU MUST SAY pdflatex -shell-escape paper.tex
 
 \documentclass[11pt, letterpaper, oneside] {article}
 \usepackage{amsmath, amssymb, amsthm}
@@ -8,11 +8,17 @@
 \begin{document}
 \parindent = 0cm
 
+\section{Motivation}
+It is a truth universally acknowledged, that a single Python module in possession of a good GUI, must be in want of a Haskell backend. Joking aside, three trends are clear when looking at the most recent State of Haskell survey and other data: in the first place, Haskellers primarily use Haskell for mathematical analysis, parsing/compiling, and (increasingly) web development; importantly, GUI development in Haskell is almost non-existent. Secondly, Python remains a popular language for creating GUIs, because of its high-level, human-readable syntax and intuitive ease of use. Lastly, Python code is much slower than the corresponding C code, while Haskell's performance is generally almost as good as C's for most use cases. This is in spite of the fact that Python and Haskell are both very high-level languages. 
+
+\section{Further work}
+In future, HaPy could support dynamic conversion from GADTs to Python types when instance of user-defined Haskell data are passed from the Haskell layer to the Python layer---in particular, Haskell's product types would map to Python classes while Haskell's sum types could be represented in Python by an enumerated type. 
+\section{Refernces}
+System.Plugins stuff.
+
 Testing minted.
-\begin{minted}{c}
-int main() {
-  printf("hello, world");
-  return 0;
-}
+\begin{minted}{haskell}
+fib :: [Int]
+fib = 1 : 1 : foldWith (+) fib (tail fib)
 \end{minted}
 \end{document}
