@@ -4,7 +4,12 @@ module HaPy where
 import Foreign.StablePtr
 import Foreign.Ptr
 import Foreign.C.String
-import System.Plugins
+import qualified System.Plugins as Plug
+import System.Directory
+import GHC
+import Module
+import GHC.Paths (libdir)
+import System.FilePath
 
 -- Placeholder type used where the actual type is hidden or unknown
 data Opaque 
@@ -21,13 +26,48 @@ foreign export ccall getSymbol :: CString -> CString -> IO (StablePtr Opaque)
 getSymbol modName_c symName_c = do
     modName <- peekCString modName_c
     symName <- peekCString symName_c
-    status <- load modName [] [] symName
+    objectFilePath <- objectFileForModuleName modName
+    status <- Plug.load objectFilePath [] [] symName
     case status of
-        LoadFailure msg -> do -- Symbol not found, return error
+        Plug.LoadFailure msg -> do -- Symbol not found, return error
             return $ castPtrToStablePtr nullPtr 
-        LoadSuccess _ sym -> do -- Return symbol
+        Plug.LoadSuccess _ sym -> do -- Return symbol
             sPtr <- newStablePtr sym
             return $ castToOpaquePtr sPtr
+
+objectFileForModuleName :: String -> IO String
+objectFileForModuleName modName = do
+    -- Search for the module first in current directory
+    dot <- getCurrentDirectory
+    let localPath = dot </> modName ++ ".o"
+    isLocal <- doesFileExist localPath
+    if isLocal then
+        return localPath
+    else do -- Else look in for a cabal installed package (I'm aware that this is a hack)
+        externalModuleObjectFilePath modName
+
+externalModuleObjectFilePath :: String -> IO String
+externalModuleObjectFilePath mod = do
+    package <- hostPackage mod
+    path <- libPath package
+    let objf = path </> ("HS" ++ package <.> "o")
+    let hif = path </> (moduleNameSlashes $ mkModuleName mod) <.> "hi"
+    let tohif = path </> (takeFileName (replaceExtension objf "hi"))
+    -- Now we're going to do something dirty, copy the interface file over
+    copyFile hif tohif
+    return objf
+
+libPath :: String -> IO FilePath
+libPath packageName = do
+    home <- getHomeDirectory
+    return $ home </> ".cabal" </> "lib" </> packageName </> "ghc-7.0.3"
+
+hostPackage :: String -> IO String
+hostPackage mName = runGhc (Just libdir) $ do
+    flags <- getSessionDynFlags
+    _ <- setSessionDynFlags flags -- this looks stupid but is necesary
+    mod <- lookupModule (mkModuleName mName) Nothing
+    return $ packageIdString $ modulePackageId mod
 
 
 -- Apply an argument supplied from the C side to the function in the pointer
