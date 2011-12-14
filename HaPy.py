@@ -51,7 +51,7 @@ class HaskellModule:
 
 	def __getattr__(self, name):
 		symPtr = haPy.getSymbol(self.path, name)
-		if symPtr is None:
+		if symPtr is 0:
 			raise AttributeError
 
 		return HaskellObject(symPtr)
