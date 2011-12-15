@@ -37,17 +37,33 @@ getSymbol modName_c symName_c = do
             sPtr <- newStablePtr sym
             return $ castToOpaquePtr sPtr
 
+foreign export ccall getInterfaceFilePath :: CString -> IO (CString)
+getInterfaceFilePath modName_c = do
+    modName <- peekCString modName_c
+    objFile <- localModuleFilePath modName
+    let hiFile = replaceExtension objFile ".hi"
+    isLocal <- doesFileExist hiFile
+    if isLocal then
+        newCString hiFile
+    else 
+        newCString ""
+
 objectFileForModuleName :: String -> IO String
 objectFileForModuleName modName = do
     -- Search for the module first in current directory and sub dirs
-    let modulePath = foldr (</>) "" (splitOn "." modName)
-    dot <- getCurrentDirectory
-    let localPath = dot </> (modulePath ++ ".o")
+    localPath <- localModuleFilePath modName
     isLocal <- doesFileExist localPath
     if isLocal then
         return localPath
     else do -- Else look in for a cabal installed package (I'm aware that this is a hack)
         externalModuleObjectFilePath modName
+
+localModuleFilePath :: String -> IO String
+localModuleFilePath modName = do
+    let modulePath = foldr (</>) "" (splitOn "." modName)
+    dot <- getCurrentDirectory
+    let localPath = dot </> (modulePath ++ ".o")
+    return localPath
 
 externalModuleObjectFilePath :: String -> IO String
 externalModuleObjectFilePath mod = do

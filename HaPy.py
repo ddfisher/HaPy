@@ -12,6 +12,7 @@ hapy.retrieveInt.restype = c_int
 hapy.retrieveBool.restype = lambda i: False if i == 0 else True #TODO: not working, must debug
 hapy.retrieveDouble.restype = c_double
 hapy.retrieveString.restype = c_char_p
+hapy.getInterfaceFilePath.restype = c_char_p
 
 class HaskellType:
     def __init__(self, name, cls, applyFun, retrieveFun):
@@ -154,10 +155,10 @@ class HaskellModule:
             raise AttributeError("Function not found")
 
 def _getInterface(modName):
-    paths = modName.split('.')
-    mod = paths[-1]
+    ifaceFilePath = hapy.getInterfaceFilePath(modName)
     olddir = os.getcwd()
-    path = os.path.join(os.getcwd(), os.sep.join(paths[:-1]))
+    path = os.path.dirname(ifaceFilePath)
+    mod = os.path.splitext(os.path.basename(ifaceFilePath))[0]
     os.chdir(path)
     interfaceOutput = subprocess.check_output(["ghc", mod, "-e", ":browse"])
     os.chdir(olddir)
