@@ -3,14 +3,13 @@ import sys
 import subprocess
 import weakref
 import os
-import imp
 
 # Load libhapy
 hapy = cdll.LoadLibrary("./libhapy.so")
 
 # Set libhapy typeinfo
 hapy.retrieveInt.restype = c_int
-hapy.retrieveBool.restype = lambda i: False if i == 0 else True #TODO: not working, must debug
+hapy.retrieveBool.restype = lambda i: False if i == 0 else True
 hapy.retrieveDouble.restype = c_double
 hapy.retrieveString.restype = c_char_p
 hapy.getInterfaceFilePath.restype = c_char_p
@@ -27,7 +26,8 @@ class HaskellType:
 
 _types = [ HaskellType("Int"    , int   , hapy.applyInt    , hapy.retrieveInt)
          , HaskellType("Bool"   , bool  , hapy.applyBool   , hapy.retrieveBool)
-         , HaskellType("Double" , float , hapy.applyDouble , hapy.retrieveDouble)
+         , HaskellType("Double" , float , lambda p, f: hapy.applyDouble(p, c_double(f)) , hapy.retrieveDouble)
+         # , HaskellType("Double" , float , hapy.applyDouble , hapy.retrieveDouble)
          , HaskellType("String" , str   , hapy.applyString , hapy.retrieveString)
          ]
 _KNOWN_TYPES = { type.name:type for type in _types }
