@@ -36,23 +36,6 @@ def _knownTypeFromClass(cls):
         if type.cls == cls:
             return type
     return None
-                
-class HaskellFunctionType:
-    def __init__(self, name, argTypes, returnType):
-        self.name = name
-        self.argTypes = argTypes
-        self.returnType = returnType
-
-    def __repr__(self):
-        return self.__class__.__name__ + "(" + repr(self.name) + ", " + repr(self.argTypes) + ", " + repr(self.returnType) + ")"
-
-    @staticmethod
-    def parse(s):
-        [name, rest] = s.split("::")
-        name = name.strip()
-        types = rest.split("->")
-        types = map(str.strip, types)
-        return HaskellFunctionType(name, types[:-1], types[-1])
 
 
 class HaskellObject:
