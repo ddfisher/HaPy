@@ -1,6 +1,7 @@
 from ctypes import *
 import os.path
 import subprocess
+import weakref
 
 # Load libhapy
 hapy = cdll.LoadLibrary("./libhapy.so")
@@ -44,24 +45,26 @@ class HaskellObject:
         self.name = name
         self.argTypes = argTypes
         self.returnType = returnType
+        self._finalizer = weakref.ref(self, lambda wr, ptr=self.ptr: hapy.freePtr(ptr))
 
     def __repr__(self):
         return self.__class__.__name__ + "(" + repr(self.name) + ", " + repr(self.argTypes) + ", " + repr(self.returnType) + ")"
 
     def isFullyApplied(self):
-        return self.argTypes == []
+        return not self.argTypes
 
-    def __call__(self, arg, *args, **kwargs):
+    def __call__(self, *allArgs, **kwargs):
         typecheck = kwargs.get("typecheck", False)
 
-        # make sure object is still valid
-        if self.ptr is None:
-            raise RuntimeError("Value already retrieved: object no longer callable")
+        if not allArgs:
+            return self._retrieve()
 
+        arg = allArgs[0]
+        args = allArgs[1:]
         if self.isFullyApplied():
             return RuntimeError("Too many arguments")
 
-        # adjust generic type if it exists
+        # adjust generic type if it exists TODO: fix
         if _isGeneric(self.argTypes[0]):
             nextTypeInfo = _knownTypeFromClass(arg.__class__)
             oldType = self.argTypes[0]
@@ -71,26 +74,26 @@ class HaskellObject:
                 newType = arg.returnType
             else:
                 raise TypeError("Cannot handle " + arg.__class__.__name__)
-            self.argTypes = [newType if t == oldType else t for t in self.argTypes]
+            argTypes = [newType if t == oldType else t for t in self.argTypes]
             if self.returnType == oldType:
-                self.returnType = newType
+                returnType = newType
+        else:
+            argTypes = self.argTypes
+            returnType = self.returnType
 
         # apply argument as appropriate
-        nextType = self.argTypes[0]
+        nextType = argTypes[0]
         if nextType in _KNOWN_TYPES:
             nextTypeInfo = _KNOWN_TYPES[nextType]
             if isinstance(arg, nextTypeInfo.cls):
-                self.ptr = nextTypeInfo.applyFun(self.ptr, arg)
-                del self.argTypes[0]
+                return HaskellObject(nextTypeInfo.applyFun(self.ptr, arg), self.name, argTypes[1:], returnType)(*args)
             else:
                 # type mismatch!
                 raise TypeError("Expected argument of type " + nextTypeInfo.cls.__name__
                                 + " but received type " + arg.__class__.__name__ + ".")
         elif isinstance(arg, HaskellObject):
             if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType):
-                self.ptr = hapy.applyOpaque(self.ptr, arg.ptr) # TODO: currently, both pointers are freed. instead of always freeing pointers, use finalizers
-                arg.ptr = None
-                del self.argTypes[0]
+                return HaskellObject(hapy.applyOpaque(self.ptr, arg.ptr), self.name, argTypes[1:], returnType)(*args)
             else:
                 raise TypeError("Expected haskell object of type " + nextType
                                 + "but received type " + arg.returnType)
@@ -106,9 +109,7 @@ class HaskellObject:
     def _retrieve(self):
         # TODO: case that the last argument is an unresolved generic type (rare)
         if self.isFullyApplied() and self.returnType in _KNOWN_TYPES:
-            retVal = _KNOWN_TYPES[self.returnType].retrieveFun(self.ptr)
-            self.ptr = None
-            return retVal
+            return _KNOWN_TYPES[self.returnType].retrieveFun(self.ptr)
         else: 
             return self
 
@@ -123,7 +124,7 @@ class HaskellModule:
         if name in self.interface:
             symPtr = hapy.getSymbol(self.path, name)
             if symPtr is not None:
-                return HaskellObject(symPtr, *self.interface[name])._retrieve()
+                return HaskellObject(symPtr, *self.interface[name])()
             else:
                 raise AttributeError("Function not found: interface mismatch")
         else:
@@ -133,9 +134,12 @@ def _getInterface(file):
     interfaceOutput = subprocess.check_output(["ghc", file, "-e", ":browse"])
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
+    functions = filter(None, functions)
     return {func[0]: func for func in functions}
 
 def _parseInterfaceLine(s):
+    if "::" not in s:
+        return None
     # TODO: parse class if present e.g. "Number a => a"
     if "=>" in s:
         raise TypeError("typeclasses not yet supported")
