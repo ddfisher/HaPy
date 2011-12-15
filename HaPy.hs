@@ -78,7 +78,6 @@ hostPackage mName = runGhc (Just libdir) $ do
 applyArg :: StablePtr (a -> Opaque) -> a -> IO (StablePtr Opaque)
 applyArg sPtr arg = do
     fun <- deRefStablePtr sPtr
-    _ <- freeStablePtr sPtr
     res <- return (fun arg)
     newStablePtr res
 
@@ -110,7 +109,6 @@ foreign export ccall applyOpaque :: StablePtr (Opaque -> Opaque) ->
                                       StablePtr Opaque -> IO (StablePtr Opaque)
 applyOpaque funPtr argPtr = do
     arg <- deRefStablePtr argPtr
-    _ <- freeStablePtr argPtr
     applyArg funPtr arg
 
 
@@ -119,8 +117,14 @@ applyOpaque funPtr argPtr = do
 retrieveResult :: StablePtr a -> IO(a)
 retrieveResult sPtr = do
     res <- deRefStablePtr sPtr
-    _ <- freeStablePtr sPtr
     return res
+
+
+-- free pointer
+foreign export ccall freePtr :: StablePtr a -> IO ()
+freePtr sPtr = do
+    _ <- freeStablePtr sPtr
+    return ()
 
 -- export for each supported type
 

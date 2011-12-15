@@ -1,6 +1,7 @@
 from ctypes import *
 import sys
 import subprocess
+import weakref
 import os
 
 # Load libhapy
@@ -37,23 +38,6 @@ def _knownTypeFromClass(cls):
         if type.cls == cls:
             return type
     return None
-                
-class HaskellFunctionType:
-    def __init__(self, name, argTypes, returnType):
-        self.name = name
-        self.argTypes = argTypes
-        self.returnType = returnType
-
-    def __repr__(self):
-        return self.__class__.__name__ + "(" + repr(self.name) + ", " + repr(self.argTypes) + ", " + repr(self.returnType) + ")"
-
-    @staticmethod
-    def parse(s):
-        [name, rest] = s.split("::")
-        name = name.strip()
-        types = rest.split("->")
-        types = map(str.strip, types)
-        return HaskellFunctionType(name, types[:-1], types[-1])
 
 # Define importer for haskell modules as part of the python import mechanism
 class HaPyImporter:
@@ -82,18 +66,22 @@ class HaskellObject:
         self.name = name
         self.argTypes = argTypes
         self.returnType = returnType
+        self._finalizer = weakref.ref(self, lambda wr, ptr=self._ptr: hapy.freePtr(ptr))
 
     def __repr__(self):
         return self.__class__.__name__ + "(" + repr(self.name) + ", " + repr(self.argTypes) + ", " + repr(self.returnType) + ")"
 
     def isFullyApplied(self):
-        return self.argTypes == []
+        return not self.argTypes
 
-    def __call__(self, arg, *args):
-        # make sure object is still valid
-        if self._ptr is None:
-            raise RuntimeError("Value already retrieved: object no longer callable")
+    def __call__(self, *allArgs, **kwargs):
+        typecheck = kwargs.get("typecheck", False)
 
+        if not allArgs:
+            return self._retrieve()
+
+        arg = allArgs[0]
+        args = allArgs[1:]
         if self.isFullyApplied():
             return RuntimeError("Too many arguments")
 
@@ -107,26 +95,26 @@ class HaskellObject:
                 newType = arg.returnType
             else:
                 raise TypeError("Cannot handle " + arg.__class__.__name__)
-            self.argTypes = [newType if t == oldType else t for t in self.argTypes]
+            argTypes = [newType if t == oldType else t for t in self.argTypes]
             if self.returnType == oldType:
-                self.returnType = newType
+                returnType = newType
+        else:
+            argTypes = self.argTypes
+            returnType = self.returnType
 
         # apply argument as appropriate
-        nextType = self.argTypes[0]
+        nextType = argTypes[0]
         if nextType in _KNOWN_TYPES:
             nextTypeInfo = _KNOWN_TYPES[nextType]
             if isinstance(arg, nextTypeInfo.cls):
-                self._ptr = nextTypeInfo.applyFun(self._ptr, arg)
-                del self.argTypes[0]
+                return HaskellObject(nextTypeInfo.applyFun(self._ptr, arg), self.name, argTypes[1:], returnType)(*args)
             else:
                 # type mismatch!
                 raise TypeError("Expected argument of type " + nextTypeInfo.cls.__name__
                                 + " but received type " + arg.__class__.__name__ + ".")
         elif isinstance(arg, HaskellObject):
-            if arg.isFullyApplied() and arg.returnType == nextType:
-                self._ptr = hapy.applyOpaque(self._ptr, arg._ptr) # TODO: currently, both pointers are freed. instead of always freeing pointers, use finalizers
-                arg._ptr = None
-                del self.argTypes[0]
+            if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType):
+                return HaskellObject(hapy.applyOpaque(self._ptr, arg._ptr), self.name, argTypes[1:], returnType)(*args)
             else:
                 raise TypeError("Expected haskell object of type " + nextType
                                 + "but received type " + arg.returnType)
@@ -142,9 +130,7 @@ class HaskellObject:
     def _retrieve(self):
         # TODO: case that the last argument is an unresolved generic type (rare)
         if self.isFullyApplied() and self.returnType in _KNOWN_TYPES:
-            retVal = _KNOWN_TYPES[self.returnType].retrieveFun(self._ptr)
-            self._ptr = None
-            return retVal
+            return _KNOWN_TYPES[self.returnType].retrieveFun(self._ptr)
         else: 
             return self
 
@@ -161,7 +147,7 @@ class HaskellModule:
         if name in self.interface:
             symPtr = hapy.getSymbol(self.name, name)
             if symPtr is not None:
-                return HaskellObject(symPtr, *self.interface[name])._retrieve()
+                return HaskellObject(symPtr, *self.interface[name])()
             else:
                 raise AttributeError("Function not found: interface mismatch")
         else:
@@ -177,9 +163,12 @@ def _getInterface(modName):
     os.chdir(olddir)
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
+    functions = filter(None, functions)
     return {func[0]: func for func in functions}
 
 def _parseInterfaceLine(s):
+    if "::" not in s:
+        return None
     # TODO: parse class if present e.g. "Number a => a"
     if "=>" in s:
         raise TypeError("typeclasses not yet supported")

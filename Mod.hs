@@ -2,6 +2,8 @@ module Mod where
 import Data.HashTable
 import Data.Int
 
+data TestData = TestA | TestB | TestC | TestD String
+
 one :: Int
 one = 1
 
@@ -18,3 +20,6 @@ haskellObject = [1::Int,2,3,4,5]
 
 mySum :: [Int] -> Int
 mySum = sum
+
+myId :: cow -> cow
+myId = id
