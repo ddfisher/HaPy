@@ -1,9 +1,12 @@
 import HaPy
 
 mod = HaPy.LoadHaskellModule("Mod")
-print mod.one.toInt()
+print mod.one
 
-print mod.plus(1, mod.one).toInt()
+print mod.plus(1, 2)
 
+print mod.greeting
 
-print mod.greeting.toString()
+haskellObject = mod.haskellObject
+print haskellObject
+print mod.mySum(haskellObject)
