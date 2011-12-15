@@ -155,13 +155,15 @@ class HaskellModule:
             raise AttributeError("Function not found")
 
 def _getInterface(modName):
-    ifaceFilePath = hapy.getInterfaceFilePath(modName)
-    olddir = os.getcwd()
-    path = os.path.dirname(ifaceFilePath)
-    mod = os.path.splitext(os.path.basename(ifaceFilePath))[0]
-    os.chdir(path)
-    interfaceOutput = subprocess.check_output(["ghc", mod, "-e", ":browse"])
-    os.chdir(olddir)
+    moduleLocation = hapy.getInterfaceFilePath(modName)[:-3]
+    try:
+        if (moduleLocation):
+            interfaceOutput = subprocess.check_output(["ghc", moduleLocation[:-3], "-e", ":browse"])
+        else:
+            interfaceOutput = subprocess.check_output(["ghc", "-e", ":browse " + modName])
+    except CalledProcessError:
+        return None
+
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
     functions = filter(None, functions)
