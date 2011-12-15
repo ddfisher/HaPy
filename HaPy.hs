@@ -11,6 +11,7 @@ import Module
 import GHC.Paths (libdir)
 import System.FilePath
 import Data.List.Split
+import qualified Control.Exception as Except
 
 -- Placeholder type used where the actual type is hidden or unknown
 data Opaque 
@@ -41,10 +42,14 @@ foreign export ccall doesModuleExist :: CString -> IO (Bool)
 doesModuleExist modName_c = do
     modName <- peekCString modName_c
     local <- localModuleFilePath modName
-    external <- externalModuleObjectFilePath modName
     isLocal <- doesFileExist local
-    isExternal <- doesFileExist external
-    return $ isLocal || isExternal
+    if isLocal then
+        return True
+    else
+        Except.catch
+            (seq (hostPackage modName) (return True))
+            (\e -> seq (e::Except.SomeException) (return False))
+    
 
 foreign export ccall getInterfaceFilePath :: CString -> IO (CString)
 getInterfaceFilePath modName_c = do
