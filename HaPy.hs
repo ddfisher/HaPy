@@ -37,6 +37,15 @@ getSymbol modName_c symName_c = do
             sPtr <- newStablePtr sym
             return $ castToOpaquePtr sPtr
 
+foreign export ccall doesModuleExist :: CString -> IO (Bool)
+doesModuleExist modName_c = do
+    modName <- peekCString modName_c
+    local <- localModuleFilePath modName
+    external <- externalModuleObjectFilePath modName
+    isLocal <- doesFileExist local
+    isExternal <- doesFileExist external
+    return $ isLocal || isExternal
+
 foreign export ccall getInterfaceFilePath :: CString -> IO (CString)
 getInterfaceFilePath modName_c = do
     modName <- peekCString modName_c
