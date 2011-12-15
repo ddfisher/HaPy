@@ -8,7 +8,7 @@ hapy = cdll.LoadLibrary("./libhapy.so")
 
 # Set libhapy typeinfo
 hapy.retrieveInt.restype = c_int
-hapy.retrieveBool.restype = lambda i: False if i is 0 else True #TODO: not working, must debug
+hapy.retrieveBool.restype = lambda i: False if i == 0 else True #TODO: not working, must debug
 hapy.retrieveDouble.restype = c_double
 hapy.retrieveString.restype = c_char_p
 
@@ -55,25 +55,26 @@ class HaskellFunctionType:
         types = map(str.strip, types)
         return HaskellFunctionType(name, types[:-1], types[-1])
 
-
-# Define finder and loader
+# Define importer for haskell modules as part of the python import mechanism
 class HaPyImporter:
     def find_module(self, fullname, path=None):
-        print "Find module called"
-        return None        
+        if (fullname.split('.'))[0] == "HaPy":
+            return self
+        else:
+            raise ImportError
 
     def load_module(self, fullname):
-        return None
+        modName = '.'.join((fullname.split('.'))[1:])
+        mod = loadHaskellModule(modName)
+        mod.__file__ = "<HaskellModule>"
+        mod.__loader__ = self
+        sys.modules.setdefault(fullname, mod)
+        return mod
 
-def useHaskellImporter(pathItem):
-    if pathItem is haskellPathItem:
-        return HaPyImporter()
-    else:
-        raise ImporterError
-
-haskellPathItem = "<<Haskell>>"
-__path__ = [haskellPathItem]
-sys.path_hooks.append(useHaskellImporter)
+# After much experimentation it has been found that the combination
+# of __path__ and adding the importer to the meta_path works.
+__path__ = []
+sys.meta_path.append(HaPyImporter())
 
 class HaskellObject:
     def __init__(self, objPtr, name, argTypes, returnType):

@@ -30,6 +30,7 @@ getSymbol modName_c symName_c = do
     status <- Plug.load objectFilePath [] [] symName
     case status of
         Plug.LoadFailure msg -> do -- Symbol not found, return error
+            print msg
             return $ castPtrToStablePtr nullPtr 
         Plug.LoadSuccess _ sym -> do -- Return symbol
             sPtr <- newStablePtr sym
