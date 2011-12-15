@@ -187,10 +187,14 @@ def _parseInterfaceLine(s):
         return None
     # TODO: parse class if present e.g. "Number a => a"
     if "=>" in s:
-        raise TypeError("typeclasses not yet supported")
+        # raise TypeError("typeclasses not yet supported")
+        print "typeclasses not yet supported, cannot parse: " + s
+        return None
     # TODO: parse functions properly
     if "(" in s:
-        raise TypeError("functions not yet supported")
+        # raise TypeError("functions not yet supported")
+        print "functions not yet supported, cannot parse: " + s
+        return None
     [name, rest] = s.split("::")
     name = name.strip()
     types = rest.split("->")
