@@ -105,6 +105,10 @@ class HaskellObject:
             if arg.isFullyApplied() and arg.returnType == nextType:
                 self.ptr = hapy.applyOpaque(self.ptr, arg.ptr) # TODO: currently, both pointers are freed. instead of always freeing pointers, use finalizers
                 arg.ptr = None
+                del self.argTypes[0]
+            else:
+                raise TypeError("Expected haskell object of type " + nextType
+                                + "but received type " + arg.returnType)
         else:
             raise TypeError("Cannot handle " + arg.__class__.__name__)
 
