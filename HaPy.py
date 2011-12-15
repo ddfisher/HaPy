@@ -33,7 +33,7 @@ _types = [ HaskellType("Int"    , int   , hapy.applyInt    , hapy.retrieveInt)
 _KNOWN_TYPES = { type.name:type for type in _types }
 
 def _isGeneric(type):
-    return type[0].islower()
+    return isinstance(type, str) and type[0].islower()
 
 def _knownTypeFromClass(cls):
     for type in _KNOWN_TYPES.values():
@@ -86,7 +86,7 @@ class HaskellObject:
         return not self.argTypes
 
     def __call__(self, *allArgs, **kwargs):
-        typecheck = kwargs.get("typecheck", False)
+        typecheck = kwargs.get("typecheck", True)
 
         if not allArgs:
             return self._retrieve()
@@ -124,11 +124,11 @@ class HaskellObject:
                 raise TypeError("Expected argument of type " + nextTypeInfo.cls.__name__
                                 + " but received type " + arg.__class__.__name__ + ".")
         elif isinstance(arg, HaskellObject):
-            if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType):
+            if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType) or tuple(arg.argTypes + [arg.returnType]) == nextType:
                 return HaskellObject(hapy.applyOpaque(self._ptr, arg._ptr), self.name, argTypes[1:], returnType)(*args)
             else:
-                raise TypeError("Expected haskell object of type " + nextType
-                                + "but received type " + arg.returnType)
+                raise TypeError("Expected haskell object of type " + str(nextType)
+                                + " but received type " + str(arg.returnType))
         else:
             raise TypeError("Cannot handle " + arg.__class__.__name__)
 
@@ -182,23 +182,42 @@ def _getInterface(modName):
     functions = filter(None, functions)
     return {func[0]: func for func in functions}
 
+
+
 def _parseInterfaceLine(s):
+    def avoidParenSplit(string, sep):
+        if "(" not in string:
+            return string.split(sep)
+
+        frontParts = string.split("(", 1)
+        backParts = frontParts[1].rsplit(")",1)
+        front = frontParts[0]
+        middle = "(" + backParts[0] + ")"
+        back = backParts[1]
+        return front.split(sep) + [middle] + back.split(sep)
+    def parsePossibleFunction(string):
+        if string[0] == "(" and string[-1] == ")":
+            string = string[1:-1]
+            types = avoidParenSplit(string, "->")
+            types = map(str.strip, types)
+            types = filter(None, types)
+            types = map(parsePossibleFunction, types)
+            return tuple(types)
+        else:
+            return string
+
     if "::" not in s:
         return None
     # TODO: parse class if present e.g. "Number a => a"
     if "=>" in s:
-        # raise TypeError("typeclasses not yet supported")
-        #print "typeclasses not yet supported, cannot parse: " + s
-        return None
-    # TODO: parse functions properly
-    if "(" in s:
-        # raise TypeError("functions not yet supported")
-        #print "functions not yet supported, cannot parse: " + s
-        return None
+        # silently ignore
+        s = s.split("=>")[1]
     [name, rest] = s.split("::")
     name = name.strip()
-    types = rest.split("->")
+    types = avoidParenSplit(rest, "->")
     types = map(str.strip, types)
+    types = filter(None, types)
+    types = map(parsePossibleFunction, types)
     return (name, types[:-1], types[-1])
     
 
