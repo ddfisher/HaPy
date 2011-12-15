@@ -1,7 +1,7 @@
-import sys
 from ctypes import *
-import os.path
+import sys
 import subprocess
+import os
 
 # Load libhapy
 hapy = cdll.LoadLibrary("./libhapy.so")
@@ -150,12 +150,12 @@ class HaskellObject:
 
 class HaskellModule:
     def __init__(self, name, dirs):
-        self.path = os.path.join(dirs[0], name) #TODO: support multiple directories (the load command in haskell already does this: we just need to pass the string list through)
-        self.interface = _getInterface(self.path)
+        self.name = name 
+        self.interface = _getInterface(self.name)
 
     def __getattr__(self, name):
         if name in self.interface:
-            symPtr = hapy.getSymbol(self.path, name)
+            symPtr = hapy.getSymbol(self.name, name)
             if symPtr is not None:
                 return HaskellObject(symPtr, *self.interface[name])._retrieve()
             else:
@@ -163,8 +163,9 @@ class HaskellModule:
         else:
             raise AttributeError("Function not found")
 
-def _getInterface(file):
-    interfaceOutput = subprocess.check_output(["ghc", file, "-e", ":browse"])
+def _getInterface(modName):
+    filePath = os.path.join(os.getcwd(), os.sep.join(modName.split('.'))) + ".o"
+    interfaceOutput = subprocess.check_output(["ghc", filePath, "-e", ":browse"])
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
     return {func[0]: func for func in functions}

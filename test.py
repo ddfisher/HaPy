@@ -1,3 +1,5 @@
-from HaPy import Mod
+import HaPy
 
-print Mod.plus(4,5)
+mod = HaPy.loadHaskellModule("Mod")
+
+print mod.plus(4,5)

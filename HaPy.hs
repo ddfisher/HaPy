@@ -10,6 +10,7 @@ import GHC
 import Module
 import GHC.Paths (libdir)
 import System.FilePath
+import Data.List.Split
 
 -- Placeholder type used where the actual type is hidden or unknown
 data Opaque 
@@ -38,9 +39,10 @@ getSymbol modName_c symName_c = do
 
 objectFileForModuleName :: String -> IO String
 objectFileForModuleName modName = do
-    -- Search for the module first in current directory
+    -- Search for the module first in current directory and sub dirs
+    let modulePath = foldr (</>) "" (splitOn "." modName)
     dot <- getCurrentDirectory
-    let localPath = dot </> modName ++ ".o"
+    let localPath = dot </> (modulePath ++ ".o")
     isLocal <- doesFileExist localPath
     if isLocal then
         return localPath
