@@ -1,3 +1,4 @@
+import sys
 from ctypes import *
 
 # Load libhapy
@@ -9,9 +10,28 @@ haPy.retrieveBool.restype = lambda i: False if i is 0 else True #TODO: not worki
 haPy.retrieveDouble.restype = c_double
 haPy.retrieveString.restype = c_char_p
 
+# Define finder and loader
+class HaPyImporter:
+    def find_module(self, fullname, path=None):
+        print "Find module called"
+        return None        
+
+    def load_module(self, fullname):
+        return None
+
+def useHaskellImporter(pathItem):
+    if pathItem is haskellPathItem:
+        return HaPyImporter()
+    else:
+        raise ImporterError
+
+haskellPathItem = "<<Haskell>>"
+__path__ = [haskellPathItem]
+sys.path_hooks.append(useHaskellImporter)
+
 class HaskellObject:
     def __init__(self, objPtr):
-        self.ptr = objPtr
+        self._ptr = objPtr
     
     def __call__(self, arg, *args):
         applyFun = None
@@ -25,23 +45,23 @@ class HaskellObject:
             applyFun = haPy.applyString
         elif isinstance(arg, HaskellObject):
             applyFun = haPy.applyOpaque
-            arg = arg.ptr
+            arg = arg._ptr
         else:
             raise TypeError("Unknown Object Type!")
-        self.ptr = applyFun(self.ptr, arg)
+        self._ptr = applyFun(self._ptr, arg)
         return self(*args) if args else self
 
     def toInt(self):
-        return haPy.retrieveInt(self.ptr)
+        return haPy.retrieveInt(self._ptr)
     
     def toBool(self):
-        return haPy.retrieveBool(self.ptr)
+        return haPy.retrieveBool(self._ptr)
 
     def toDouble(self):
-        return haPy.retrieveDouble(self.ptr)
+        return haPy.retrieveDouble(self._ptr)
 
     def toString(self):
-        return haPy.retrieveString(self.ptr)
+        return haPy.retrieveString(self._ptr)
 
 
 class HaskellModule:
@@ -55,7 +75,7 @@ class HaskellModule:
 
         return HaskellObject(symPtr)
 
-def LoadHaskellModule(moduleName):
+def loadHaskellModule(moduleName):
     ''' moduleName should be of the standard "Data.Int"
         format using in Haskell import statements
         So we need to search the package.conf?
