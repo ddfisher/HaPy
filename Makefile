@@ -5,7 +5,7 @@ C: haskell HaPy.c
 		-lHSrts-ghc7.0.3 -optl-Wl,-rpath,/usr/lib/ghc/ghc-7.0.3/
 
 haskell: HaPy.hs
-	ghc -fPIC -dynamic -c HaPy.hs -o HaPy_Haskell.o
+	ghc -fPIC -dynamic -package ghc-7.0.3 -c HaPy.hs -o HaPy_Haskell.o
 
 testModule:
 	ghc --make Mod.hs

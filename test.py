@@ -1,9 +1,8 @@
 import HaPy
 
 mod = HaPy.LoadHaskellModule("Mod")
-print mod.one.toInt()
+print mod.one
 
-print mod.plus(1, mod.one).toInt()
+print mod.plus(1, 2)
 
-
-print mod.greeting.toString()
+print mod.greeting

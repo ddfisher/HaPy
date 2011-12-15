@@ -2,14 +2,14 @@ module Mod where
 import Data.HashTable
 import Data.Int
 
-one :: Integer
+one :: Int
 one = 1
 
 plus :: Int -> Int -> Int
 plus = (+)
 
-hash :: String -> Int32
-hash = hashString
+hash :: String -> Int
+hash = fromIntegral.hashString
 
 greeting :: String
 greeting = "hi there, from Haskell!"
