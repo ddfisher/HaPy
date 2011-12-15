@@ -18,6 +18,9 @@ test: C testModule
 newton: Newton.hs
 	ghc --make Newton.hs
 
+calc: Calc.hs
+	ghc --make Calc.hs
+
 clean:
 	rm -f *.o
 	rm -f *.hi

@@ -29,8 +29,9 @@ class App:
 
     def evaluate(self):
         expr = (self.inputBox.get(LINEBEGIN, INSERT)).strip()
+        exprAscii = expr.encode("utf8", "ignore")
         self.inputBox.mark_set(LINEBEGIN, INSERT)
-        result = Calc.evaluate(expr)
+        result = Calc.evaluate(exprAscii)
         self.outputBox.insert(END, result)
         self.outputBox.insert(END, "\n")
 
