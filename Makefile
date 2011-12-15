@@ -1,7 +1,9 @@
 C: haskell HaPy.c
 	ghc -fPIC -c HaPy.c -o HaPy.o
-	ghc -dynamic -shared -package plugins -package ghc-paths \
-		HaPy.o HaPy_Haskell.o HaPy_Haskell_stub.o -o libhapy.so \
+	ghc -dynamic -shared \
+        -package plugins -package ghc-paths -package split \
+		HaPy.o HaPy_Haskell.o HaPy_Haskell_stub.o \
+        -o libhapy.so \
 		-lHSrts-ghc7.0.3 -optl-Wl,-rpath,/usr/lib/ghc/ghc-7.0.3/
 
 haskell: HaPy.hs

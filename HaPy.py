@@ -1,14 +1,15 @@
 from ctypes import *
-import os.path
+import sys
 import subprocess
 import weakref
+import os
 
 # Load libhapy
 hapy = cdll.LoadLibrary("./libhapy.so")
 
 # Set libhapy typeinfo
 hapy.retrieveInt.restype = c_int
-hapy.retrieveBool.restype = lambda i: False if i is 0 else True #TODO: not working, must debug
+hapy.retrieveBool.restype = lambda i: False if i == 0 else True #TODO: not working, must debug
 hapy.retrieveDouble.restype = c_double
 hapy.retrieveString.restype = c_char_p
 
@@ -38,14 +39,34 @@ def _knownTypeFromClass(cls):
             return type
     return None
 
+# Define importer for haskell modules as part of the python import mechanism
+class HaPyImporter:
+    def find_module(self, fullname, path=None):
+        if (fullname.split('.'))[0] == "HaPy":
+            return self
+        else:
+            raise ImportError
+
+    def load_module(self, fullname):
+        modName = '.'.join((fullname.split('.'))[1:])
+        mod = loadHaskellModule(modName)
+        mod.__file__ = "<HaskellModule>"
+        mod.__loader__ = self
+        sys.modules.setdefault(fullname, mod)
+        return mod
+
+# After much experimentation it has been found that the combination
+# of __path__ and adding the importer to the meta_path works.
+__path__ = []
+sys.meta_path.append(HaPyImporter())
 
 class HaskellObject:
     def __init__(self, objPtr, name, argTypes, returnType):
-        self.ptr = objPtr
+        self._ptr = objPtr
         self.name = name
         self.argTypes = argTypes
         self.returnType = returnType
-        self._finalizer = weakref.ref(self, lambda wr, ptr=self.ptr: hapy.freePtr(ptr))
+        self._finalizer = weakref.ref(self, lambda wr, ptr=self._ptr: hapy.freePtr(ptr))
 
     def __repr__(self):
         return self.__class__.__name__ + "(" + repr(self.name) + ", " + repr(self.argTypes) + ", " + repr(self.returnType) + ")"
@@ -64,7 +85,7 @@ class HaskellObject:
         if self.isFullyApplied():
             return RuntimeError("Too many arguments")
 
-        # adjust generic type if it exists TODO: fix
+        # adjust generic type if it exists
         if _isGeneric(self.argTypes[0]):
             nextTypeInfo = _knownTypeFromClass(arg.__class__)
             oldType = self.argTypes[0]
@@ -86,14 +107,14 @@ class HaskellObject:
         if nextType in _KNOWN_TYPES:
             nextTypeInfo = _KNOWN_TYPES[nextType]
             if isinstance(arg, nextTypeInfo.cls):
-                return HaskellObject(nextTypeInfo.applyFun(self.ptr, arg), self.name, argTypes[1:], returnType)(*args)
+                return HaskellObject(nextTypeInfo.applyFun(self._ptr, arg), self.name, argTypes[1:], returnType)(*args)
             else:
                 # type mismatch!
                 raise TypeError("Expected argument of type " + nextTypeInfo.cls.__name__
                                 + " but received type " + arg.__class__.__name__ + ".")
         elif isinstance(arg, HaskellObject):
             if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType):
-                return HaskellObject(hapy.applyOpaque(self.ptr, arg.ptr), self.name, argTypes[1:], returnType)(*args)
+                return HaskellObject(hapy.applyOpaque(self._ptr, arg._ptr), self.name, argTypes[1:], returnType)(*args)
             else:
                 raise TypeError("Expected haskell object of type " + nextType
                                 + "but received type " + arg.returnType)
@@ -109,20 +130,18 @@ class HaskellObject:
     def _retrieve(self):
         # TODO: case that the last argument is an unresolved generic type (rare)
         if self.isFullyApplied() and self.returnType in _KNOWN_TYPES:
-            return _KNOWN_TYPES[self.returnType].retrieveFun(self.ptr)
+            return _KNOWN_TYPES[self.returnType].retrieveFun(self._ptr)
         else: 
             return self
 
-
-
 class HaskellModule:
     def __init__(self, name, dirs):
-        self.path = os.path.join(dirs[0], name) #TODO: support multiple directories (the load command in haskell already does this: we just need to pass the string list through)
-        self.interface = _getInterface(self.path)
+        self.name = name 
+        self.interface = _getInterface(self.name)
 
     def __getattr__(self, name):
         if name in self.interface:
-            symPtr = hapy.getSymbol(self.path, name)
+            symPtr = hapy.getSymbol(self.name, name)
             if symPtr is not None:
                 return HaskellObject(symPtr, *self.interface[name])()
             else:
@@ -130,8 +149,14 @@ class HaskellModule:
         else:
             raise AttributeError("Function not found")
 
-def _getInterface(file):
-    interfaceOutput = subprocess.check_output(["ghc", file, "-e", ":browse"])
+def _getInterface(modName):
+    paths = modName.split('.')
+    mod = paths[-1]
+    olddir = os.getcwd()
+    path = os.path.join(os.getcwd(), os.sep.join(paths[:-1]))
+    os.chdir(path)
+    interfaceOutput = subprocess.check_output(["ghc", mod, "-e", ":browse"])
+    os.chdir(olddir)
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
     functions = filter(None, functions)
@@ -153,7 +178,7 @@ def _parseInterfaceLine(s):
     return (name, types[:-1], types[-1])
     
 
-def LoadHaskellModule(moduleName, dirs=["."]):
+def loadHaskellModule(moduleName, dirs=["."]):
     ''' moduleName should be of the standard "Data.Int"
         format using in Haskell import statements
         So we need to search the package.conf?
