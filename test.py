@@ -1,17 +1,17 @@
 from HaPy.Sub import Mod
 
-print mod.plus(1, 2)
-# plusOne = mod.plus(1)
+print Mod.plus(1, 2)
+# plusOne = Mod.plus(1)
 # print plusOne(2)
 # print plusOne(3)
 
-print mod.greeting
+print Mod.greeting
 
-haskellObject = mod.haskellObject
+haskellObject = Mod.haskellObject
 print haskellObject
-print mod.mySum(haskellObject)
+print Mod.mySum(haskellObject)
 
-# print mod.myId(4)
-print mod.myId("cheesecake")
-# print mod.myId(True)
-# print mod.myId(False)
+# print Mod.myId(4)
+print Mod.myId("cheesecake")
+# print Mod.myId(True)
+# print Mod.myId(False)
