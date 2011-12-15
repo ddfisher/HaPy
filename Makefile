@@ -15,6 +15,9 @@ testModule:
 test: C testModule
 	python test.py
 
+newton: Newton.hs
+	ghc --make Newton.hs
+
 clean:
 	rm -f *.o
 	rm -f *.hi

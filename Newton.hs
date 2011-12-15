@@ -1,3 +1,5 @@
+module Newton where
+
 import Data.List
 import Data.List.Split
 
@@ -20,6 +22,7 @@ evaluate poly x = foldl (\acc (coeff, exp) -> acc + coeff * (x ** exp)) 0 poly
 polyDerivative :: Polynomial -> Polynomial
 polyDerivative = map (\(coeff, exp) -> (coeff * exp, exp - 1))
 
+{-
 newton :: (Fractional t, Ord t) => (t -> t) -> (t -> t) -> t -> [t]
 newton f f' x0 = iterate next x0
     where next xn = xn - ((f xn)/(f' xn))
@@ -28,3 +31,4 @@ findZero :: (Fractional t, Ord t) => (t -> t) -> (t -> t) -> t -> t -> t
 findZero f f' x0 epsilon = case find (\x -> (abs $ f x) < epsilon) (newton f f' x0) of
                              Just root -> root
                              Nothing   -> undefined
+-}
