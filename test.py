@@ -1,5 +1,8 @@
-from HaPy.Sub import Mod
-print Mod.plus(1, 2)
+from HaPy.GHC import Paths
+from HaPy.System import FilePath
+
+libdir = Paths.libdir
+print libdir
 
 # import HaPy.Sub.Mod
 # print HaPy.Sub.Mod.plus(1, 2)

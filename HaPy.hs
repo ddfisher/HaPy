@@ -28,15 +28,36 @@ foreign export ccall getSymbol :: CString -> CString -> IO (StablePtr Opaque)
 getSymbol modName_c symName_c = do
     modName <- peekCString modName_c
     symName <- peekCString symName_c
-    objectFilePath <- objectFileForModuleName modName
-    status <- Plug.load objectFilePath [] [] symName
-    case status of
-        Plug.LoadFailure msg -> do -- Symbol not found, return error
-            print msg
+    result <- loadSym modName symName
+    case result of
+        Nothing -> do -- Symbol not found, return error
             return $ castPtrToStablePtr nullPtr 
-        Plug.LoadSuccess _ sym -> do -- Return symbol
+        Just sym -> do -- Return symbol
             sPtr <- newStablePtr sym
             return $ castToOpaquePtr sPtr
+
+loadSym :: String -> String -> IO (Maybe a)
+loadSym modName sym = do
+    isLocal <- isLocalMod modName
+    if isLocal then
+        localLoad modName sym
+    else
+        packageLoad modName sym
+
+localLoad :: String -> String -> IO (Maybe a)
+localLoad modName sym = do
+        objectFilePath <- localModuleFilePath modName
+        result <- Plug.load objectFilePath [] [] sym
+        case result of
+            Plug.LoadSuccess _ s -> return $ Just s
+            Plug.LoadFailure _ -> return Nothing
+
+packageLoad :: String -> String -> IO (Maybe a)
+packageLoad modName sym = do
+        objectFilePath <- externalModuleObjectFilePath modName
+        packageName <- hostPackage modName
+        Plug.initLinker
+        Plug.loadPackageFunction packageName modName sym
 
 foreign export ccall doesModuleExist :: CString -> IO (Bool)
 doesModuleExist modName_c = do
@@ -49,7 +70,11 @@ doesModuleExist modName_c = do
         Except.catch
             (hostPackage modName >> return True)
             (\e -> seq (e::Except.SomeException) (return False))
-    
+
+isLocalMod :: String -> IO (Bool)
+isLocalMod modName = do
+    local <- localModuleFilePath modName
+    doesFileExist local
 
 foreign export ccall getInterfaceFilePath :: CString -> IO (CString)
 getInterfaceFilePath modName_c = do
@@ -61,16 +86,6 @@ getInterfaceFilePath modName_c = do
         newCString hiFile
     else 
         newCString ""
-
-objectFileForModuleName :: String -> IO String
-objectFileForModuleName modName = do
-    -- Search for the module first in current directory and sub dirs
-    localPath <- localModuleFilePath modName
-    isLocal <- doesFileExist localPath
-    if isLocal then
-        return localPath
-    else do -- Else look in for a cabal installed package (I'm aware that this is a hack)
-        externalModuleObjectFilePath modName
 
 localModuleFilePath :: String -> IO String
 localModuleFilePath modName = do
