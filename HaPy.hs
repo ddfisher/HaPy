@@ -47,7 +47,7 @@ doesModuleExist modName_c = do
         return True
     else
         Except.catch
-            (seq (hostPackage modName) (return True))
+            (hostPackage modName >> return True)
             (\e -> seq (e::Except.SomeException) (return False))
     
 
