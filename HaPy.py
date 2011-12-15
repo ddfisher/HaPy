@@ -68,7 +68,9 @@ class HaskellObject:
     def isFullyApplied(self):
         return self.argTypes == []
 
-    def __call__(self, arg, *args):
+    def __call__(self, arg, *args, **kwargs):
+        typecheck = kwargs.get("typecheck", False)
+
         # make sure object is still valid
         if self.ptr is None:
             raise RuntimeError("Value already retrieved: object no longer callable")
@@ -102,7 +104,7 @@ class HaskellObject:
                 raise TypeError("Expected argument of type " + nextTypeInfo.cls.__name__
                                 + " but received type " + arg.__class__.__name__ + ".")
         elif isinstance(arg, HaskellObject):
-            if arg.isFullyApplied() and arg.returnType == nextType:
+            if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType):
                 self.ptr = hapy.applyOpaque(self.ptr, arg.ptr) # TODO: currently, both pointers are freed. instead of always freeing pointers, use finalizers
                 arg.ptr = None
                 del self.argTypes[0]
