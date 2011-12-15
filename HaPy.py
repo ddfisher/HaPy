@@ -151,9 +151,13 @@ class HaskellObject:
 class HaskellModule:
     def __init__(self, name, dirs):
         self.name = name 
-        self.interface = _getInterface(self.name)
+        self.interface = None
+        self.__str__ = name
+        self.__path__ = []
 
     def __getattr__(self, name):
+        if not self.interface:
+            self.interface = _getInterface(self.name)
         if name in self.interface:
             symPtr = hapy.getSymbol(self.name, name)
             if symPtr is not None:
