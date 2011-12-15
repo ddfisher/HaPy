@@ -164,8 +164,13 @@ class HaskellModule:
             raise AttributeError("Function not found")
 
 def _getInterface(modName):
-    filePath = os.path.join(os.getcwd(), os.sep.join(modName.split('.'))) + ".o"
-    interfaceOutput = subprocess.check_output(["ghc", filePath, "-e", ":browse"])
+    paths = modName.split('.')
+    mod = paths[-1]
+    olddir = os.getcwd()
+    path = os.path.join(os.getcwd(), os.sep.join(paths[:-1]))
+    os.chdir(path)
+    interfaceOutput = subprocess.check_output(["ghc", mod, "-e", ":browse"])
+    os.chdir(olddir)
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
     return {func[0]: func for func in functions}

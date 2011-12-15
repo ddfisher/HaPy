@@ -1,5 +1,5 @@
 import HaPy
 
-mod = HaPy.loadHaskellModule("Mod")
+Mod = HaPy.loadHaskellModule("Sub.Mod")
 
-print mod.plus(4,5)
+print Mod.plus(4,5)
