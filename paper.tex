@@ -42,7 +42,7 @@ to the head of any Python script. This will dynamically load the specified Haske
 \begin{minted}{python}
 print HsModule.sum(first, second)
 \end{minted}
-Installing HaPy is similarly intuitive, but with the caveat that all libraries called by \verb!HaPy.hs! must be dynamically-linkable. This means that all of the packages that \verb!HaPy.hs! imports must be reinstalled with Cabal, using the \verb!--enable-shared! flag. \footnote{The requirement that these packages be dynamically-linkable stems from the fact that \texttt{ctypes} must be able to dynamically link to \texttt{HaPy.hs} (see \nameref{simple_install}) } \\
+Installing HaPy is similarly intuitive, but with the caveat that all libraries called by \verb!HaPy.hs! must be dynamically-linkable. This means that all of the packages that \verb!HaPy.hs! imports must be reinstalled with Cabal, using the \verb!--enable-shared! flag. \footnote{The requirement that these packages be dynamically-linkable stems from the fact that \texttt{ctypes} must be able to dynamically link to \texttt{HaPy.hs} (see \nameref{sec:simple_install}) } \\
 However, Haskell packages that are used by the user's Haskell code need not be dynamically-linkable. Indeed, on the Haskell side, no special support is needed by the user; any standard Haskell code will run with HaPy (modulo the incompleteness of our type checker). All the issues of marshalling data and passing data to and from the Haskell foreign function interface are managed by the code in \verb!HaPy.hs!. This has the added benefit of enabling the user to call any code defined in the Haskell standard libraries from Python. 
 % - Meshing python and haskell semantics
 
@@ -59,7 +59,7 @@ import HaPy.Data.List
 \subsection{Haskell Types in Python}
 One of the main challenges in HaPy is the representation of Haskell data types in Python.  Some primitive Haskell types (currently \verb!Bool!, \verb!Int!, \verb!Double!, and \verb!String!) are marshalled into the equivalent Python type.  All other Haskell types are returned as opaque references: they can be passed to Haskell functions, but cannot be modified or inspected by other Python code.
 Use of Haskell functions is trivial: they can be called just like other Python functions.  Arguments can be any of the supported primitive types, which will be marshalled, or Haskell object references, which are passed through.  The return value will be automatically converted into a Python type if possible; otherwise, it will remain as an opaque Haskell reference.
-The Haskell functions do not behave exactly like other Python functions: they support currying.  When they are called with too few arguments, a partially-applied function object is returned.  This does not invalidate the original function - all functions and partially-applied functions can be called as many times as desired.  We chose to do this because it naturally followed from the implementation (see \nameref{imp_currying}) and nicely mirrors the behavior of actual Haskell functions.  Further, this functionality can be ignored if not desired.  (The user only loses immediate too-few-argument errors.)
+The Haskell functions do not behave exactly like other Python functions: they support currying.  When they are called with too few arguments, a partially-applied function object is returned.  This does not invalidate the original function - all functions and partially-applied functions can be called as many times as desired.  We chose to do this because it naturally followed from the implementation (see \nameref{sec:imp_currying}) and nicely mirrors the behavior of actual Haskell functions.  Further, this functionality can be ignored if not desired.  (The user only loses immediate too-few-argument errors.)
 
 \section{Implementation}
 
@@ -85,8 +85,7 @@ The second challenge involved satisfying HSPlugins assumption that the Haskell i
 
 Again, this mechanism is not robust. It will be important to utilize GHC's import mechanism in the future. Properly importing both local and package modules will probably require either utilizing HSPlugins' low level API or abandoning it altogether.
 
-\subsection{Function Currying}
-\label{sec:imp_currying}
+\subsection{Function Currying}\label{sec:imp_currying}
 
 The Python-side wrapper around Haskell functions is implemented as a variable-argument callable Python object, which contains type information and an opaque pointer to the Haskell function.  To evaluate an opaque Haskell function pointer from Python, it must be passed to a conversion function in Haskell (using the FFI) with its arguments, where it is re-cast as the appropriate type, applied, and returned to Python.  Instead of many different conversion functions for different numbers of arguments, there is a single-argument conversion function for each argument type (one for each of the supported marshalled types and one for opaque types).  Therefore, function calls to Haskell function objects are curried in Python, and arguments are pushed through the FFI one at a time.  When there are no arguments left (as determined by the type checker), Python converts the opaque pointer to the known return type of the Haskell function.
 
@@ -117,8 +116,7 @@ HaPy uses \verb!System.Plugins! to dynamically load Haskell modules, which assum
 % difficultly in loading preinstalled modules
 %  - plugins only supports very simply model (like assuming that .hi file is next to .o file)
 
-\subsection{Simplified Install}
-\label{sec:simple_install}
+\subsection{Simplified Install}\label{sec:simple_install}
 While developing HaPy, we encountered a serious bug relating to dynamic linking. In 64-bit environments, this results segfaults when using the Haskell \verb!System.Plugins! library. \\
 Further, the Python \verb!ctypes! module dynamically links to our binary. Unfortunately, this requires that we build our binary with the \verb!-dynamic! flag, which causes GHC to link all of the libraries HaPy uses dynamically. This means that users of HaPy must use Cabal to reinstall several packages with the \verb!--enable-shared! option. We should be able to statically link all of our libraries, so that we can simply distribute a self-contained binary. Furthermore, we speculate that this might solve our 64-bit bug.
 
