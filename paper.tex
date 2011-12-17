@@ -109,7 +109,7 @@ A bigger challenge would be dynamically converting from algebraic data types (AD
 % require user of compiled binary to have dynamically compiled binary of haskell libraries
 
 \subsection{Passing Python Callbacks}
-
+Lastly, we would like to allow users to pass Python functions to Haskell; an example use case might be passing a comparison function for Haskell to use in sorting a list. Python's ctypes module already supports passing Python functions to C code (provided that the functions take only arguments which can be converted to C types), so presumably we would use this to facilitate the passing of Python function pointers to Haskell. Once we have a pointer to a Python function in C, Haskell data can be marshalled into an appropriate ctype for the function to act on, and the return type of the function can subsequently be converted back into a Haskell type.
 \section{Refernces}
 
 % hs-plugins 
