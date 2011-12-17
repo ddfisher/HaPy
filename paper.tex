@@ -1,7 +1,4 @@
-% IMPORTANT: BECAUSE WE ARE USING MINTED, YOU MUST SAY pdflatex -shell-escape paper.tex
-
 \documentclass[11pt, letterpaper, oneside, twocolumn] {article}
-%\usepackage{fullpage}
 \usepackage{minted}
 
 \begin{document}
@@ -19,9 +16,19 @@ It is a truth universally acknowledged, that a single Python module in possessio
 
 \section{Use}
 
+\subsection{Loading Haskell Modules}
+
+\subsection{Haskell types in Python}
+
 \section{Implementation}
 
-\section{Further work}
+\subsection{Dynamic Loading of Haskell modules}
+
+\subsection{Function Currying}
+
+\subsection{Type checking}
+
+\section{Future work}
 In future, HaPy could support dynamic conversion from GADTs to Python types when instance of user-defined Haskell data are passed from the Haskell layer to the Python layer---in particular, Haskell's product types would map to Python classes while Haskell's sum types could be represented in Python by an enumerated type. 
 
 \section{Refernces}
