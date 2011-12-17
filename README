@@ -1,0 +1,7 @@
+Simply type "make" to make the necessary files.
+Note that ghc compilation may fail if the packages required by HaPy.hs have not been compiled with dynamic linking enabled.
+If this happens, simply reinstall the relevant package with the command "cabal install --reinstall --enable-shared <package>"
+
+Once everything has been built, make a nice Haskell module. Call it Module. Fire up a Python interpreter (or open up a Python script) and type "from HaPy import Module"
+Now you should be able to call functions defined in module just by typing "Module.functionName(args)" as you would an ordinary Python function.
+
