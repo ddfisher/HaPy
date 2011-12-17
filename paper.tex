@@ -55,7 +55,19 @@ It is a truth universally acknowledged, that a single Python module in possessio
 
 \subsection{Dynamic Loading of Haskell modules}
 
-% - hs-plugins
+HaPy uses the HSPlugins package to dynamically load requested Haskell modules. HSPlugins supports more than just dynamic loading of external object files. Most of the meat of the package is in two crucial components: the loading of dependent modules and dynamic type checking.
+
+HaPy doesn't actually use the dynamic type checking features of HSPlugins. This feature requires that client Haskell supply static types to check against. This make sense for HSPlugins intended use case, the loading of plugins that implement known interfaces. We, however, need to be able to load any Haskell module with any interface at runtime. We therefore ask HSPlugins to load all symbols as an opaque data type (literally \emph{data Opaque}) which will loose its type information when passed back to the Python side anyway.
+
+HSPlugins supports a simple, but limited interface for loading modules. The client is expected to pass a string representing the path to the object file containing the requested module and a string representing the symbol to be loaded. An implicit expectation is that the Haskell interface file for the requested module sits next to the object file on the file system and has the same base name.
+
+While this condition holds for locally compiled modules (GHC by default generates the object file and interface file next to each other) this doesn't hold for Haskell packages installed on the system. Loading modules from these packages posed several challenges. The first is finding the location of a package's object file from the module name. The module \emph{System.Plugins}, for example, might be provided by the package \emph{plugins-1.5.1.4}. Fortunately, we are able to use the GHC api to do this lookup for us which we then translate into a path to the object file.
+
+Our method of doing so is not robust, however. Ideally, we would be able to ask GHC to invoke the same mechanism that it uses to lookup modules when the user requests packages in GHCi but the complexity and opacity of the GHC api made it impossible to do this in our timeframe.
+
+The second challenge involved satisfying HSPlugins assumption that the Haskell interface file sits next to the object file for the module. Packages might provide many different modules, the interface files for which are stored underneath the the package's base directory in a file structure mimicing the package structure. We had to thus copy the requested interface file to the location expected by HSPlugins.
+
+Again, this mechanism is not robust. It will be important to utilize GHC's import mechanism in the future. Properly importing both local and package modules will probably require either utilizing HSPlugins' low level api or abandoing it altogether.
 
 \subsection{Function Currying}
 
