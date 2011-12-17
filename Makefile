@@ -30,3 +30,4 @@ clean:
 
 paper:
 	pdflatex -shell-escape paper.tex
+	evince paper.pdf &
