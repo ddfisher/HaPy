@@ -10,9 +10,21 @@ Haskell for Python
 \maketitle
 
 \section{Introduction}
+% - what is HaPy?
+% - focuses on ease of use
+%  - to acomplish this: should be pythonic
+%  - completely transparent!
+%  - no coding overhead on either side (shouldn't be aware that you're using haskell on python side, don't need to code for python in haskell -> should be able to use any haskell module on system)
 
 \section{Motivation}
 It is a truth universally acknowledged, that a single Python module in possession of a good GUI, must be in want of a Haskell backend. Joking aside, three trends are clear when looking at the most recent State of Haskell survey and other data: in the first place, Haskellers primarily use Haskell for mathematical analysis, parsing/compiling, and (increasingly) web development; importantly, GUI development in Haskell is almost non-existent. Secondly, Python remains a popular language for creating GUIs, because of its high-level, human-readable syntax and intuitive ease of use. Lastly, Python code is much slower than the corresponding C code, while Haskell's performance is generally almost as good as C's for most use cases. This is in spite of the fact that Python and Haskell are both very high-level languages. 
+% - general motivation: haskell and python are good at different things
+%  - in a large project: good to be able to do each piece in the best language
+%  - usefullness is inversely proportional to friction (so now maximally useful)
+% - example use case:
+%  - python GUI, haskell backend
+%  - (or existing python project)
+%  - (or existing haskell library)
 
 \section{Use}
 Importing a Haskell module into a Python program is easy with HaPy: simply add the line
@@ -23,22 +35,71 @@ to the head of any Python script. This will dynamically load the specified Haske
 Installing HaPy is similarly intuitive, but with the caveat that all libraries called by HaPy.hs must be dynamically-linkable. This means that all of the packages that HaPy.hs imports must be reinstalled with Cabal, using the \verb!--enable-shared! flag. \footnote{The requirement that these packages be dynamically-linkable is enforced by Python's ctypes module, which we use to marshall primitive types across the Haskell-Python interface.} \\
 However, Haskell packages that are used by the user's Haskell code need not be dynamically-linkable. Indeed, on the Haskell side, no special support is needed by the user; literally any standard Haskell code will run with HaPy. All the issues of marshalling data and passing data to and from the Foreign Function Interface are managed by the code in HaPy.hs \\
 This has the added benefit of enabling the user to call any code defined in the Haskell standard libraries from Python. 
+% - Meshing python and haskell semantics
+
 \subsection{Loading Haskell Modules}
+% - super easy: all haskell modules represented as submodules of HaPy
+%  - standard haskell module represnetnation (e.x. System.Plugins) preserved
+% - import HaPy.Data.List
 
 \subsection{Haskell types in Python}
+% - some automarshalled (haskell functions, haskell primitive types)
+% - others opaque
+% - support function currying
+%  - haskell functions in python have haskell-type access if desired
+%  - can be ignored
+%  - can apply a few arguments at once
+% -  returns a new function every time
+% - can apply opaque haskell types
+% - automatically marshall (if possible) once all args applied
 
 \section{Implementation}
 
+% - Split across three languages
+%  - to our surprise currently very little in C
+%  - choice of what language to work in for each feature
+% - Python side uses Ctypes to dynamically load our precompiled C and Haskell shared object file 
+%  - idea: in future statily compile C-python module
+
 \subsection{Dynamic Loading of Haskell modules}
+
+% - hs-plugins
 
 \subsection{Function Currying}
 
+% C interface supports applying one argument at a time for each of 
+
 \subsection{Type checking}
 
+% David
+
 \section{Future work}
-In future, HaPy could support dynamic conversion from GADTs to Python types when instance of user-defined Haskell data are passed from the Haskell layer to the Python layer---in particular, Haskell's product types would map to Python classes while Haskell's sum types could be represented in Python by an enumerated type. 
+
+\subsection{Type checking}
+
+% real type checking
+
+\subsection{Supporting more types}
+
+% marshalling lists
+% mashralling ADTs
+
+\subsection{Improved dynamic loading}
+
+% 64-bit bug
+% difficultly in loading preinstalled modules
+%  - plugins only supports very simply model (like assuming that .hi file is next to .o file)
+% requires dynamic libraries
+
+\subsection{Simplied install}
+
+% require user of compiled binary to have dynamically compiled binary of haskell libraries
+
+\subsection{Passing Python Callbacks}
 
 \section{Refernces}
-System.Plugins stuff.
+
+% hs-plugins 
+% missing py?
 
 \end{document}
