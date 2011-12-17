@@ -1,5 +1,5 @@
 \documentclass[11pt, letterpaper, oneside, twocolumn] {article}
-\usepackage{minted}
+\usepackage{verbatim, minted}
 
 \begin{document}
 
@@ -27,9 +27,29 @@ It is a truth universally acknowledged, that a single Python module in possessio
 %  - (or existing haskell library)
 
 \section{Use}
+Our goal with HaPy is to allow the user to call arbitrary Haskell code while remaining committed to ``Pythonic'' syntax. In particular, importing a Haskell module into a Python program is easy with HaPy: simply add the line
+\begin{minted}{python}
+from HaPy import HsModule
+\end{minted}
+or
+\beign{minted}{python}
+import HaPy.HsModule
+\end{minted}
+to the head of any Python script. This will dynamically load the specified Haskell module, so that any Haskell function defined in HsModule can be accessed and executed by the Python script, as though it were code defined in another Python module. For instance, if HsModule defines a function \verb!sum! which takes two real numbers and returns their sum, the result can be printed in Python with
+\begin{minted}{python}
+print HsModule.sum(first, second)
+\end{minted}
+Installing HaPy is similarly intuitive, but with the caveat that all libraries called by HaPy.hs must be dynamically-linkable. This means that all of the packages that HaPy.hs imports must be reinstalled with Cabal, using the \verb!--enable-shared! flag. \footnote{The requirement that these packages be dynamically-linkable is enforced by Python's ctypes module, which we use to marshall primitive types across the Haskell-Python interface.} \\
+However, Haskell packages that are used by the user's Haskell code need not be dynamically-linkable. Indeed, on the Haskell side, no special support is needed by the user; literally any standard Haskell code will run with HaPy. All the issues of marshalling data and passing data to and from the Foreign Function Interface are managed by the code in HaPy.hs \\
+This has the added benefit of enabling the user to call any code defined in the Haskell standard libraries from Python. 
 % - Meshing python and haskell semantics
 
 \subsection{Loading Haskell Modules}
+As noted previously, the syntax for loading Haskell modules is identical to the normal Python import syntax. All Haskell modules are represented as submodules of the HaPy module, in order that the Python interpreter should not mistake them for Python modules. \\
+Furthermore, the Haskell module hierarchy is preserved, so for instance one can say
+\begin{minted}{python}
+import HaPy.Data.List
+\end{minted}
 % - super easy: all haskell modules represented as submodules of HaPy
 %  - standard haskell module represnetnation (e.x. System.Plugins) preserved
 % - import HaPy.Data.List
@@ -84,7 +104,8 @@ Again, this mechanism is not robust. It will be important to utilize GHC's impor
 % real type checking
 
 \subsection{Supporting more types}
-
+In addition to marshalling primitive types across the Haskell-Python interface, we would eventually like to be able to marshall Python lists into Haskell lists and vice versa. One potential challenge here would be the marshalling of infinitely long, lazily-evaluated lists from Haskell to Python. \\
+A bigger challenge would be dynamically converting from algebraic data types (ADTs) defined in Haskell to Python objects; for example, a simple product type composed of Haskell primitives could be represented as a named tuple\footnote{Effectively a fixed-size dictionary} in Python.
 % marshalling lists
 % mashralling ADTs
 
@@ -100,7 +121,7 @@ Again, this mechanism is not robust. It will be important to utilize GHC's impor
 % require user of compiled binary to have dynamically compiled binary of haskell libraries
 
 \subsection{Passing Python Callbacks}
-
+Lastly, we would like to allow users to pass Python functions to Haskell; an example use case might be passing a comparison function for Haskell to use in sorting a list. Python's ctypes module already supports passing Python functions to C code (provided that the functions take only arguments which can be converted to C types), so presumably we would use this to facilitate the passing of Python function pointers to Haskell. Once we have a pointer to a Python function in C, Haskell data can be marshalled into an appropriate ctype for the function to act on, and the return type of the function can subsequently be converted back into a Haskell type.
 \section{Refernces}
 
 % hs-plugins 
