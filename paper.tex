@@ -27,9 +27,11 @@ It is a truth universally acknowledged, that a single Python module in possessio
 %  - (or existing haskell library)
 
 \section{Use}
+% - Meshing python and haskell semantics
 
 \subsection{Loading Haskell Modules}
 % - super easy: all haskell modules represented as submodules of HaPy
+%  - standard haskell module represnetnation (e.x. System.Plugins) preserved
 % - import HaPy.Data.List
 
 \subsection{Haskell types in Python}
@@ -45,16 +47,51 @@ It is a truth universally acknowledged, that a single Python module in possessio
 
 \section{Implementation}
 
+% - Split across three languages
+%  - to our surprise currently very little in C
+%  - choice of what language to work in for each feature
+% - Python side uses Ctypes to dynamically load our precompiled C and Haskell shared object file 
+%  - idea: in future statily compile C-python module
+
 \subsection{Dynamic Loading of Haskell modules}
+
+% - hs-plugins
 
 \subsection{Function Currying}
 
+% C interface supports applying one argument at a time for each of 
+
 \subsection{Type checking}
 
+% David
+
 \section{Future work}
-In future, HaPy could support dynamic conversion from ADTs to Python types when instance of user-defined Haskell data are passed from the Haskell layer to the Python layer---in particular, Haskell's product types would map to Python classes while Haskell's sum types could be represented in Python by an enumerated type. 
+
+\subsection{Type checking}
+
+% real type checking
+
+\subsection{Supporting more types}
+
+% marshalling lists
+% mashralling ADTs
+
+\subsection{Improved dynamic loading}
+
+% 64-bit bug
+% difficultly in loading preinstalled modules
+%  - plugins only supports very simply model (like assuming that .hi file is next to .o file)
+% requires dynamic libraries
+
+\subsection{Simplied install}
+
+% require user of compiled binary to have dynamically compiled binary of haskell libraries
+
+\subsection{Passing Python Callbacks}
 
 \section{Refernces}
-System.Plugins stuff.
+
+% hs-plugins 
+% missing py?
 
 \end{document}
