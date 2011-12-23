@@ -1,8 +1,10 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module HaPy where
 
-import Foreign.StablePtr
 import Foreign.Ptr
+import Foreign.Marshal.Array
+import Foreign.Marshal.Alloc
+import Foreign.StablePtr
 import Foreign.C.String
 import qualified System.Plugins as Plug
 import System.Directory
@@ -54,7 +56,7 @@ localLoad modName sym = do
 
 packageLoad :: String -> String -> IO (Maybe a)
 packageLoad modName sym = do
-        objectFilePath <- externalModuleObjectFilePath modName
+        -- objectFilePath <- externalModuleObjectFilePath modName
         packageName <- hostPackage modName
         Plug.initLinker
         Plug.loadPackageFunction packageName modName sym
@@ -147,6 +149,24 @@ applyString sPtr cString = do
     res <- applyArg sPtr str
     return res
 
+foreign export ccall applyIntList :: StablePtr ([Int] -> Opaque) ->
+                                      Int -> Ptr Int -> IO (StablePtr Opaque)
+applyIntList sPtr len arrPtr = do
+    array <- peekArray len arrPtr
+    applyArg sPtr array
+
+foreign export ccall applyBoolList :: StablePtr ([Bool] -> Opaque) ->
+                                      Int -> Ptr Bool -> IO (StablePtr Opaque)
+applyBoolList sPtr len arrPtr = do
+    array <- peekArray len arrPtr
+    applyArg sPtr array
+
+foreign export ccall applyDoubleList :: StablePtr ([Double] -> Opaque) ->
+                                      Int -> Ptr Double -> IO (StablePtr Opaque)
+applyDoubleList sPtr len arrPtr = do
+    array <- peekArray len arrPtr
+    applyArg sPtr array
+
 -- Apply an arbitrary Haskell value obtained by a call to getSymbol or 
 -- apply*. The difference is that opaque values are not translated between 
 -- C and Haskell types and remain opaque pointers to Haskell heap objects.
@@ -165,12 +185,6 @@ retrieveResult sPtr = do
     return res
 
 
--- free pointer
-foreign export ccall freePtr :: StablePtr a -> IO ()
-freePtr sPtr = do
-    _ <- freeStablePtr sPtr
-    return ()
-
 -- export for each supported type
 
 foreign export ccall retrieveInt :: StablePtr Int -> IO (Int)
@@ -185,4 +199,42 @@ retrieveBool = retrieveResult
 foreign export ccall retrieveString :: StablePtr String -> IO (CString)
 retrieveString sPtr = do
     str <- retrieveResult sPtr
-    newCString str
+    newCString str -- TODO: free this later
+
+foreign export ccall retrieveListLength :: StablePtr [a] -> IO (Int)
+retrieveListLength sPtr = do
+    lst <- retrieveResult sPtr
+    return (length lst)
+
+foreign export ccall retrieveIntList :: StablePtr [Int] -> IO (Ptr Int)
+retrieveIntList sPtr = do
+    lst <- retrieveResult sPtr
+    newArray lst
+
+foreign export ccall retrieveBoolList :: StablePtr [Bool] -> IO (Ptr Bool)
+retrieveBoolList sPtr = do
+    lst <- retrieveResult sPtr
+    newArray lst
+
+foreign export ccall retrieveDoubleList :: StablePtr [Double] -> IO (Ptr Double)
+retrieveDoubleList sPtr = do
+    lst <- retrieveResult sPtr
+    newArray lst
+
+foreign export ccall retrieveOpaqueList :: StablePtr [a] -> IO (Ptr (StablePtr Opaque))
+retrieveOpaqueList sPtr = do
+    lst <- retrieveResult sPtr
+    wrappedLst <- mapM newStablePtr lst
+    newArray $ map castToOpaquePtr wrappedLst -- TODO: free this later
+
+-- cleanup
+foreign export ccall freeArray :: Ptr a -> IO ()
+freeArray arr = do
+    free arr
+    return ()
+
+foreign export ccall freePtr :: StablePtr a -> IO ()
+freePtr sPtr = do
+    _ <- freeStablePtr sPtr
+    return ()
+

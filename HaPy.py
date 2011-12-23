@@ -24,22 +24,38 @@ class HaskellType:
     def __repr__(self):
         return self.__class__.__name__ + "(" + self.name + ")"
 
+def applyListFun(cType, applyFun):
+    def convertIntList(fun, lst):
+        array = (cType * len(lst))()
+        array[:] = lst
+        return applyFun(fun, len(lst), array)
+    return convertIntList
+
+def retrieveListFun(cType, retrieveFun):
+    def retrieveList(obj):
+        retrieveFun.restype = POINTER(cType)
+        array = retrieveFun(obj)
+        length = hapy.retrieveListLength(obj)
+        lst = array[:length]
+        hapy.freeArray(array)
+        return lst
+    return retrieveList
+
 _types = [ HaskellType("Int"    , int   , hapy.applyInt    , hapy.retrieveInt)
          , HaskellType("Bool"   , bool  , hapy.applyBool   , hapy.retrieveBool)
          , HaskellType("Double" , float , lambda p, f: hapy.applyDouble(p, c_double(f)) , hapy.retrieveDouble)
-         # , HaskellType("Double" , float , hapy.applyDouble , hapy.retrieveDouble)
+        # , HaskellType("Double" , float , hapy.applyDouble , hapy.retrieveDouble)
          , HaskellType("String" , str   , hapy.applyString , hapy.retrieveString)
+         , HaskellType("[Char]" , str   , hapy.applyString , hapy.retrieveString)
+        , HaskellType("[Bool]"   , list  , applyListFun(c_bool, hapy.applyBoolList)   , retrieveListFun(c_bool, hapy.retrieveBoolList))
+        , HaskellType("[Int]"   , list  , applyListFun(c_int, hapy.applyIntList)   , retrieveListFun(c_int, hapy.retrieveIntList))
+        , HaskellType("[Double]"   , list  , applyListFun(c_double, hapy.applyDoubleList)   , retrieveListFun(c_double, hapy.retrieveDoubleList))
          ]
-_KNOWN_TYPES = { type.name:type for type in _types }
+_KNOWN_TYPES = { type.cls:type.name for type in _types }
+_TYPE_INFO = { type.name:type for type in _types }
 
 def _isGeneric(type):
     return isinstance(type, str) and type[0].islower()
-
-def _knownTypeFromClass(cls):
-    for type in _KNOWN_TYPES.values():
-        if type.cls == cls:
-            return type
-    return None
 
 # Define importer for haskell modules as part of the python import mechanism
 class HaPyImporter:
@@ -72,18 +88,16 @@ __path__ = []
 sys.meta_path.append(HaPyImporter())
 
 class HaskellObject:
-    def __init__(self, objPtr, name, argTypes, returnType):
+    def __init__(self, objPtr, typeStr):
         self._ptr = objPtr
-        self.name = name
-        self.argTypes = argTypes
-        self.returnType = returnType
+        self.typeStr = typeStr
         self._finalizer = weakref.ref(self, lambda wr, ptr=self._ptr: hapy.freePtr(ptr))
 
     def __repr__(self):
-        return self.__class__.__name__ + "(" + repr(self.name) + ", " + repr(self.argTypes) + ", " + repr(self.returnType) + ")"
+        return self.__class__.__name__ + "(" + self.typeStr + ")"
 
     def isFullyApplied(self):
-        return not self.argTypes
+        return "->" not in self.typeStr
 
     def __call__(self, *allArgs, **kwargs):
         typecheck = kwargs.get("typecheck", True)
@@ -96,54 +110,45 @@ class HaskellObject:
         if self.isFullyApplied():
             return RuntimeError("Too many arguments")
 
-        # adjust generic type if it exists
-        if _isGeneric(self.argTypes[0]):
-            nextTypeInfo = _knownTypeFromClass(arg.__class__)
-            oldType = self.argTypes[0]
-            if nextTypeInfo is not None:
-                newType = nextTypeInfo.name
-            elif isinstance(arg, HaskellObject):
-                newType = arg.returnType
-            else:
-                raise TypeError("Cannot handle " + arg.__class__.__name__)
-            argTypes = [newType if t == oldType else t for t in self.argTypes]
-            if self.returnType == oldType:
-                returnType = newType
-        else:
-            argTypes = self.argTypes
-            returnType = self.returnType
+        argType = _getType(arg)
+        if argType is None:
+            raise TypeError("Cannot handle python object of class " + arg.__class__)
 
-        # apply argument as appropriate
-        nextType = argTypes[0]
-        if nextType in _KNOWN_TYPES:
-            nextTypeInfo = _KNOWN_TYPES[nextType]
-            if isinstance(arg, nextTypeInfo.cls):
-                return HaskellObject(nextTypeInfo.applyFun(self._ptr, arg), self.name, argTypes[1:], returnType)(*args)
+        newType = _typecheck(self.typeStr, argType)
+        if newType:
+            if argType in _TYPE_INFO:
+                applyFun = _TYPE_INFO[argType].applyFun
+                return HaskellObject(applyFun(self._ptr, arg), newType)(*args)
             else:
-                # type mismatch!
-                raise TypeError("Expected argument of type " + nextTypeInfo.cls.__name__
-                                + " but received type " + arg.__class__.__name__ + ".")
-        elif isinstance(arg, HaskellObject):
-            if not typecheck or (arg.isFullyApplied() and arg.returnType == nextType) or tuple(arg.argTypes + [arg.returnType]) == nextType:
-                return HaskellObject(hapy.applyOpaque(self._ptr, arg._ptr), self.name, argTypes[1:], returnType)(*args)
-            else:
-                raise TypeError("Expected haskell object of type " + str(nextType)
-                                + " but received type " + str(arg.returnType))
+                return HaskellObject(hapy.applyOpaque(self._ptr, arg._ptr), newType)(*args)
         else:
-            raise TypeError("Cannot handle " + arg.__class__.__name__)
+            raise TypeError("Function of type \"" + self.typeStr + "\" does not accept argument of type \"" + argType + "\"")
 
-
-        if args:
-            return self(*args)
-        else:
-            return self._retrieve()
 
     def _retrieve(self):
         # TODO: case that the last argument is an unresolved generic type (rare)
-        if self.isFullyApplied() and self.returnType in _KNOWN_TYPES:
-            return _KNOWN_TYPES[self.returnType].retrieveFun(self._ptr)
+        if self.isFullyApplied() and self.typeStr in _TYPE_INFO:
+            return _TYPE_INFO[self.typeStr].retrieveFun(self._ptr)
         else: 
             return self
+
+def _getType(arg):
+    if isinstance(arg, HaskellObject):
+        return arg.typeStr
+    elif arg.__class__ in _KNOWN_TYPES:
+        return _KNOWN_TYPES[arg.__class__]
+    else:
+        return None
+
+def _typecheck(typeStr, argType):
+    fullTypeStr = "(undefined :: " + typeStr + ") (undefined :: " + argType + ")"
+    typeCheckOutput = subprocess.check_output(["ghc", "-e", ":type " + fullTypeStr])
+    print fullTypeStr
+    print typeCheckOutput
+    if "<interactive>" in typeCheckOutput:
+        return None
+    else:
+        return typeCheckOutput.split("::")[-1].replace("\n", "").strip()
 
 class HaskellModule:
     def __init__(self, name, dirs):
@@ -158,7 +163,7 @@ class HaskellModule:
         if name in self.interface:
             symPtr = hapy.getSymbol(self.name, name)
             if symPtr is not None:
-                return HaskellObject(symPtr, *self.interface[name])()
+                return HaskellObject(symPtr, self.interface[name])()
             else:
                 raise AttributeError("Function not found: interface mismatch")
         else:
@@ -177,48 +182,22 @@ def _getInterface(modName):
     if not interfaceOutput:
         return None
 
+    interfaceOutput = interfaceOutput.replace("\n ", " ")
     functions = interfaceOutput.splitlines()
     functions = map(_parseInterfaceLine, functions)
     functions = filter(None, functions)
-    return {func[0]: func for func in functions}
+    return dict(functions)
 
 
 
 def _parseInterfaceLine(s):
-    def avoidParenSplit(string, sep):
-        if "(" not in string:
-            return string.split(sep)
-
-        frontParts = string.split("(", 1)
-        backParts = frontParts[1].rsplit(")",1)
-        front = frontParts[0]
-        middle = "(" + backParts[0] + ")"
-        back = backParts[1]
-        return front.split(sep) + [middle] + back.split(sep)
-    def parsePossibleFunction(string):
-        if string[0] == "(" and string[-1] == ")":
-            string = string[1:-1]
-            types = avoidParenSplit(string, "->")
-            types = map(str.strip, types)
-            types = filter(None, types)
-            types = map(parsePossibleFunction, types)
-            return tuple(types)
-        else:
-            return string
-
-    if "::" not in s:
+    if "::" not in s or s.startswith("data") or s.startswith("class"):
         return None
-    # TODO: parse class if present e.g. "Number a => a"
-    if "=>" in s:
-        # silently ignore
-        s = s.split("=>")[1]
-    [name, rest] = s.split("::")
+    print s
+    [name, typeStr] = s.split("::")
     name = name.strip()
-    types = avoidParenSplit(rest, "->")
-    types = map(str.strip, types)
-    types = filter(None, types)
-    types = map(parsePossibleFunction, types)
-    return (name, types[:-1], types[-1])
+    typeStr = typeStr.strip()
+    return (name, typeStr)
     
 
 def loadHaskellModule(moduleName, dirs=["."]):
