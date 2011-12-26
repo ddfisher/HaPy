@@ -54,9 +54,6 @@ _types = [ HaskellType("Int"    , int   , hapy.applyInt    , hapy.retrieveInt)
 _KNOWN_TYPES = { type.cls:type.name for type in _types }
 _TYPE_INFO = { type.name:type for type in _types }
 
-def _isGeneric(type):
-    return isinstance(type, str) and type[0].islower()
-
 # Define importer for haskell modules as part of the python import mechanism
 class HaPyImporter:
     def find_module(self, fullname, path=None):
@@ -96,9 +93,6 @@ class HaskellObject:
     def __repr__(self):
         return self.__class__.__name__ + "(" + self.typeStr + ")"
 
-    def isFullyApplied(self):
-        return "->" not in self.typeStr
-
     def __call__(self, *allArgs, **kwargs):
         typecheck = kwargs.get("typecheck", True)
 
@@ -107,9 +101,6 @@ class HaskellObject:
 
         arg = allArgs[0]
         args = allArgs[1:]
-        if self.isFullyApplied():
-            return RuntimeError("Too many arguments")
-
         argType = _getType(arg)
         if argType is None:
             raise TypeError("Cannot handle python object of class " + arg.__class__)
@@ -126,8 +117,7 @@ class HaskellObject:
 
 
     def _retrieve(self):
-        # TODO: case that the last argument is an unresolved generic type (rare)
-        if self.isFullyApplied() and self.typeStr in _TYPE_INFO:
+        if self.typeStr in _TYPE_INFO:
             return _TYPE_INFO[self.typeStr].retrieveFun(self._ptr)
         else: 
             return self
@@ -142,6 +132,7 @@ def _getType(arg):
 
 def _typecheck(typeStr, argType):
     fullTypeStr = "(undefined :: " + typeStr + ") (undefined :: " + argType + ")"
+    # TODO: check that this works with package defined types
     typeCheckOutput = subprocess.check_output(["ghc", "-e", ":type " + fullTypeStr])
     print fullTypeStr
     print typeCheckOutput
