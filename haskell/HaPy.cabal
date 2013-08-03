@@ -1,0 +1,18 @@
+name:                HaPy
+version:             0.1.0.0
+synopsis:            Python to Haskell foreign function interface
+-- description:         
+homepage:            https://github.com/sakana/HaPy
+license:             MIT
+license-file:        LICENSE
+author:              David Fisher
+maintainer:          ddf1991@gmail.com
+category:            Foreign
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  exposed-modules:     
+      Foreign.HaPy
+  extensions: TemplateHaskell
+  build-depends:       base ==4.5.*, th-lift ==0.5.5, template-haskell >=2.7.0.0
