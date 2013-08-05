@@ -1,7 +1,7 @@
 name:                HaPy
 version:             0.1.0.0
-synopsis:            Python to Haskell foreign function interface
--- description:         
+synopsis:            Haskell bindings for Python
+description:         Call Haskell functions from Python!
 homepage:            https://github.com/sakana/HaPy
 license:             MIT
 license-file:        LICENSE

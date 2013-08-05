@@ -1,7 +1,7 @@
 HaPy
 ====
 
-Call Haskell functions from Python!  HaPy is a Python to Haskell foreign function interface.  Initially written in 2011 as a final project for Stanford's CS240H Haskell class by Ashwin Siripurapu, William Rowan, and David Fisher.  Now rewritten mostly from scratch by David Fisher with different tradeoffs (gaining far more stability at the expense of initial setup).
+Call Haskell functions from Python!  HaPy is set of Haskell bindings for Python.  Initially written in 2011 as a final project for Stanford's CS240H Haskell class by Ashwin Siripurapu, William Rowan, and David Fisher.  Now rewritten mostly from scratch by David Fisher with different tradeoffs (gaining far more stability at the expense of initial setup).
 
 Usage:
 ------
