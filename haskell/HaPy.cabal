@@ -14,5 +14,7 @@ cabal-version:       >=1.8
 library
   exposed-modules:     
       Foreign.HaPy
+  other-modules:
+      Foreign.HaPy.Internal
   extensions: TemplateHaskell
   build-depends:       base ==4.5.*, th-lift ==0.5.5, template-haskell >=2.7.0.0

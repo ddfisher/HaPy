@@ -14,18 +14,22 @@ Usage:
 * Add `from HaPy import LIB_NAME` to the top of your Python file
 * Call Haskell functions from Python, just like you would any other Python module.
 
-Restrictions:
+Caveats:
 -------------
 * Only functions of certain types can be exported.  Currently supported types:
  * Bool
+ * Char
  * Int
  * Double
+ * String
+ * Lists (at any level of nesting) of all the above types (e.g. [Int], [[Int]], etc.)
+* The FFI adds some overhead: all values are copied twice (e.g. from the Python representation to the C representation to the Haskell representation).
 
 Future development:
 -------------------
 * Near term:
- * Add support for String and List types
  * Allow the compiled Haskell binary to be in appropriate other directories
 * Under consideration:
  * Automatically compile Haskell library from Python
  * Automatically generate Template Haskell export file in Python
+ * Add support for passing Python functions
