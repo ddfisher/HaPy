@@ -1,5 +1,6 @@
 from ctypes import *
 import sys
+import glob
 
 class HaPyImporter:
   def find_module(self, fullname, path=None):
@@ -26,7 +27,14 @@ class HaskellModule:
     self.__str__ = module_name
     self.__path__ = []
 
-    self.__lib = cdll.LoadLibrary(module_name + ".so")
+    module_paths = (glob.glob("./" + module_name + ".so")
+                 + glob.glob("./" + module_name + ".dylib")
+                 + glob.glob("./libHS" + module_name + "*.so")
+                 + glob.glob("./libHS" + module_name + "*.dylib"))
+    if not module_paths:
+        raise RuntimeError("Haskell module '" + module_name + "' not found!")
+    module_path = module_paths[0]
+    self.__lib = cdll.LoadLibrary(module_path)
     self.__funcs = {}
     self.__ftype_map = { "Bool"   : c_bool
                        , "Char"   : c_char
@@ -130,7 +138,7 @@ def list_to_struct(lst, depth, base_type):
     for i in range(length):
       struct.array[i] = cast(list_to_struct(lst[i], depth - 1, base_type), c_void_p)
   return pointer(struct)
-    
+
 def struct_to_list(struct, depth, base_type):
   if depth == 1:
     return list(extract_array(struct, base_type))
@@ -149,7 +157,7 @@ def free_struct(struct, depth, free):
 class SimpleType:
   def __init__(self, typ):
     self.__type = typ
-  
+
   def ctype(self):
     return self.__type
 
@@ -164,7 +172,7 @@ class ListType:
     self.__base_type = base_type
     self.__depth = depth
     self.__free = free
-  
+
   def ctype(self):
     return c_void_p
 

@@ -3,16 +3,52 @@ HaPy
 
 Call Haskell functions from Python!  HaPy is set of Haskell bindings for Python.  Initially written in 2011 as a final project for Stanford's CS240H Haskell class by Ashwin Siripurapu, William Rowan, and David Fisher.  Now rewritten mostly from scratch by David Fisher with different tradeoffs (gaining far more stability at the expense of initial setup).
 
-Usage:
-------
-* Install the Haskell module by running `cabal install` in the `haskell` directory. The dependencies are currently more restrictive than necessary, so you may need to relax them if you have compilation problems.
-* Make a FFI export Haskell module.  Due to Template Haskell restrictions, this must be in a different module from any functions you are exporting.  See: `example/Export.hs`.
-* Copy the `c/HaPy_init.c` file to your Haskell project directory.  Build your project with:
-	`ghc --make -no-hs-main -optl '-shared' HaPy_init.c -o LIB_NAME.so HASKELL_FFI_FILE`
-* Install the Python module by running `python setup.py install` in the `python` directory.
-* Put the resulting `LIB_NAME.so` file in the main directory of your Python project.
-* Add `from HaPy import LIB_NAME` to the top of your Python file
-* Call Haskell functions from Python, just like you would any other Python module.
+**Table of Contents**
+
+- [Ubuntu Installation and Usage](#ubuntu-installation-and-usage)
+- [OS X/General Installation and Usage](#os-xgeneral-installation-and-usage)
+- [Common Errors](#common-errors)
+- [FAQ](#faq)
+- [Caveats](#caveats)
+- [Future development](#future-development)
+
+Ubuntu Installation and Usage:
+------------------
+* Install the dynamic base libraries with `sudo apt-get install ghc-dynamic`.
+* Follow the steps of the OS X/General Installation below.
+
+OS X/General Installation and Usage:
+--------------------------
+* Pre-installation assumptions: (if you don't meet these, please consult the appropriate project's documentation for more information)
+    * You have [pip](https://pypi.python.org/pypi/pip) installed.
+    * You are using [cabal](http://www.haskell.org/cabal/) as your Haskell build tool.  You are running cabal 1.18 or above.
+    * You are using [GHC](http://www.haskell.org/ghc/) version 7.6 or above. (This project might work with earlier versions, but this has not been tested.)
+* In the directory of your Haskell project:
+    * Update your cabal file:
+        * Add HaPy to your build-depends.  You should have a line that looks like this: `build-depends: [other haskell dependencies, if any], HaPy == 0.1.*`.
+        * Add the GHC RTS library to your extra-libraries.  The line should look like this: `extra-libraries: HSrts-ghc7.6.3`.  *IMPORTANT*: You must update this line to refer to your current version of GHC. (This is slightly annoying, but I haven't been able to find a better way to do this.)
+        * Make a FFI export Haskell module.  Due to Template Haskell restrictions, this must be in a different module from any functions you are exporting.  See: `example/haskell/Export.hs`.
+    * If you're not already using one, create a [cabal sandbox](http://coldwa.st/e/blog/2013-08-20-Cabal-sandbox.html) with `cabal sandbox init`.
+    * Build and install your Haskell module to your local sanbox with `cabal install --enable-shared`.
+    * Copy the compiled .so (on Linux) or .dylib (on OS X) file from `dist/dist-sandbox-*/build/` to your Python project directory.
+* In your Python project:
+    * Install the Python library with `sudo pip install hapy-ffi`.
+    * Import your Haskell module with `from HaPy import HASKELL_MODULE_NAME`.
+    * Call Haskell functions from Python, just like you would any other Python module.
+
+Common Errors:
+-------------
+* During cabal install:
+    * Error: `cabal: Could not resolve dependencies` -->  HaPy might not be in your local package index; run `cabal update` and try again.  If this doesn't help, the problem probably isn't HaPy related.
+    * Error: `Missing C library: HSrts-ghc7.8.2` (or similar) --> The version of the GHC RTS library that you specified in your cabal file doesn't match the version of GHC you're running.
+* When running your Python project:
+    * `Symbol not found: _stg_IND_STATIC_info` or `undefined symbol: stg_forkOnzh` --> The GHC RTS library isn't specified as one of the extra-libraries in the cabal file of your Haskell project.  See the [General Installation and Usage](#os-xgeneral-installation-and-usage) section above.
+* Anything else: please make an issue and I'll take a look!
+
+
+FAQ:
+-----
+None yet!  Feel free to start an issue if there's something you don't understand.
 
 Caveats:
 -------------
@@ -33,3 +69,4 @@ Future development:
  * Automatically compile Haskell library from Python
  * Automatically generate Template Haskell export file in Python
  * Add support for passing Python functions
+ * Add support for tuples

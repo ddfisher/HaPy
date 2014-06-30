@@ -1,3 +1,9 @@
 *.swp
 *.swo
-haskell/dist/
+HaPy-ffi-haskell/dist/
+example/haskell/dist/
+build/
+dist/
+.cabal-sandbox
+cabal.sandbox.config
+.DS_Store
