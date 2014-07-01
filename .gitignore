@@ -7,3 +7,5 @@ dist/
 .cabal-sandbox
 cabal.sandbox.config
 .DS_Store
+*.dylib
+*.so
