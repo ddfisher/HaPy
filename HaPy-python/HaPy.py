@@ -7,7 +7,7 @@ class HaPyImporter:
     if (fullname.split('.'))[0] == "HaPy":
       return self
     else:
-      raise ImportError
+      return None
 
   def load_module(self, fullname):
     module_name = '.'.join((fullname.split('.'))[1:])
