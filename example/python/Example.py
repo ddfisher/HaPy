@@ -9,4 +9,11 @@ print "numbers from 1 to 10 are", ExampleModule.arr_ret(10)
 
 print "complex array passing:", ExampleModule.arr_complex([range(3), [], range(100)])
 print "string fun:", ExampleModule.string_fun("This isn't really a palindrome.")
+
+s = ExampleModule.string_fun("abc\000def")
+print "string fun with nulls:", s,
+for c in s:
+    print ord(c),
+print
+
 print "char test:", ExampleModule.char_test("t")

@@ -118,7 +118,13 @@ def list_struct_t(typ, length):
 
 def extract_array(struct, typ):
   length = cast(struct, POINTER(c_int)).contents.value
-  return cast(struct, POINTER(list_struct_t(typ, length))).contents.array
+  if typ == c_char:
+    # handle strings separately because otherwise they'll be NULL terminated
+    # (which isn't correct in this case as we have the exact length)
+    contents = string_at(struct + sizeof(c_int), length)
+  else:
+    contents = cast(struct, POINTER(list_struct_t(typ, length))).contents.array
+  return contents
 
 def list_to_struct(lst, depth, base_type):
   length = len(lst)
@@ -128,9 +134,11 @@ def list_to_struct(lst, depth, base_type):
   if depth == 1:
     # For reasons unknown, ctypes changes arrays of c_chars into strings when
     # they're in structs.  Strings are immutable, so we cannot assign to their
-    # indices: we replace them whole instead.
+    # indices: we replace them whole instead.  Furthermore, we need to copy
+    # the string byte for byte - otherwise NULL characters will cause the string
+    # copy to terminate early.
     if base_type == c_char:
-      struct.array = lst
+      memmove(byref(struct, sizeof(c_int)), create_string_buffer(lst, length), length)
     else:
       for i in range(length):
         struct.array[i] = lst[i]
