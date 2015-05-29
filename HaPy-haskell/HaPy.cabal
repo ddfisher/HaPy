@@ -12,10 +12,12 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     
+  exposed-modules:
       Foreign.HaPy
   other-modules:
       Foreign.HaPy.Internal
   extensions: TemplateHaskell
   c-sources:           HaPy_init.c
-  build-depends:       base >=4.5 && < 4.8, th-lift ==0.5.*, template-haskell >=2.7.0.0
+  build-depends:       base >=4.5,
+                       th-lift >=0.5,
+                       template-haskell >=2.7.0.0
