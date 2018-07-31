@@ -1,5 +1,5 @@
 name:                HaPy
-version:             0.1.1.3
+version:             0.2.0.0
 synopsis:            Haskell bindings for Python
 description:         Call Haskell functions from Python!
 homepage:            https://github.com/sakana/HaPy
@@ -20,4 +20,4 @@ library
   c-sources:           HaPy_init.c
   build-depends:       base >= 4.5 && < 4.12,
                        th-lift >= 0.5 && < 0.8,
-                       template-haskell >= 2.7.0.0 && < 2.14.0.0
+                       template-haskell >= 2.11.0.0 && < 2.14.0.0
