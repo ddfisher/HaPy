@@ -43,8 +43,13 @@ Common Errors:
     * Error: `Missing C library: HSrts-ghc7.8.2` (or similar) --> The version of the GHC RTS library that you specified in your cabal file doesn't match the version of GHC you're running.
 * When running your Python project:
     * `Symbol not found: _stg_IND_STATIC_info` or `undefined symbol: stg_forkOnzh` --> The GHC RTS library isn't specified as one of the extra-libraries in the cabal file of your Haskell project.  See the [General Installation and Usage](#os-xgeneral-installation-and-usage) section above.
+    * ImportError on HaPy --> You need to install HaPy Python library to your PYTHONPATH.
+    * Cannot find ExampleModule error --> You probably need to put libHSExampleModule*.dylib or .so on your path or in this directory by symlink:
+        ```
+        $ ln -s `find ../ -iname '*.dylib'` .
+        ```
+    * dlopen error on `_stg_*` symbol --> Please check that `extra-libs:` section in `../haskell/*.cabal` file contains proper GHC RTS library reference (name varies between GHC versions.)
 * Anything else: please make an issue and I'll take a look!
-
 
 FAQ:
 -----
