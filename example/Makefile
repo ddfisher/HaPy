@@ -12,7 +12,7 @@ endif
 	@echo
 endif
 	@echo '>>> sudo pip install hapy-ffi'
-	@sudo pip install hapy-ffi
+	@pip install hapy-ffi
 	@echo
 	@$(MAKE) -C haskell all
 	@echo

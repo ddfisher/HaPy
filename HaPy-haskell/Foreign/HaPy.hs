@@ -90,7 +90,7 @@ toForeignExp _         exp = fail "conversion failed: unknown type!"
 
 makeFunction :: (String -> String) -> (Name -> [FType] -> ClauseQ) -> ([FType] -> TypeQ) -> Name -> DecsQ
 makeFunction changeName makeClause makeType origName = do
-  VarI _ t _ _ <- reify origName
+  VarI _ t _ <- reify origName
   let types = map fromHaskellType $ toTypeList t
       name = mkName . changeName . nameBase $  origName
       cl   = makeClause origName types

@@ -13,9 +13,14 @@ cabal-version:       >=1.10
 library
   exposed-modules:     ExampleModule, Export
   other-extensions:    ForeignFunctionInterface, TemplateHaskell
-  build-depends:       base >=4.6 && <4.8, HaPy == 0.1.*
+  build-depends:       base >=4.6 && <4.12, HaPy == 0.2.*
   default-language:    Haskell2010
 
   -- *** change this to your GHC version ***
   -- the make script will do this automatically
-  extra-libraries:     HSrts-ghc7.8.2
+  --extra-libraries:     HSrts-ghc
+  --extra-libraries: HSrts_l
+  extra-libraries: HSrts
+  --ghc-options: -fPIC -pie -dynamic -shared -dylib-install-name=ExampleModule
+  ghc-options: -shared
+  -- Mac: -fPIC
