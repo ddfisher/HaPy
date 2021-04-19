@@ -1,5 +1,5 @@
 name:                HaPy
-version:             0.2.0.0
+version:             0.3.0.0
 synopsis:            Haskell bindings for Python
 description:         Call Haskell functions from Python!
 homepage:            https://github.com/sakana/HaPy
